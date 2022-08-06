@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  # API.
+  api:
+    container_name: exchange-rates-api
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "$PORT:$PORT"
+    networks:
+      - exchange-rates
+    depends_on:
+      - db
+
+  # БД PostgreSQL.
+  db:
+    container_name: exchange-rates-db
+    image: postgres:13-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_PASSWORD=$DB_PASS
+      - POSTGRES_DB=$DB_NAME
+    ports:
+      - "$DB_PORT:5432"
+    networks:
+      - exchange-rates
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+networks:
+  exchange-rates:
+    name: exchange-rates
+    driver: bridge
