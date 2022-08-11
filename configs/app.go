@@ -1,8 +1,8 @@
 package configs
 
 type app struct {
-	// Текущая среда запуска приложения.
-	Env AppEnv
+	// Включён ли режим отладки.
+	Debug bool
 	// Порт, на котором запускается HTTP-сервер.
 	Port uint
 }
@@ -13,7 +13,7 @@ var App *app
 func init() {
 	InitViper()
 	App = &app{
-		Env:  getAppEnv("APP_ENV"),
-		Port: getPort("PORT"),
+		Debug: getBoolean("DEBUG"),
+		Port:  getPort("PORT"),
 	}
 }

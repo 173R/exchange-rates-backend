@@ -27,12 +27,21 @@ func (c *Context) Send(data any) {
 	})
 }
 
+// SendError отправляет указанную ошибку удаленному клиенту.
+func (c *Context) SendError(data any) {
+	c.Gin.JSON(400, map[string]interface{}{
+		"ok":    false,
+		"error": data,
+	})
+}
+
 // New возвращает ссылку на новый экземпляр Context.
 func New(c *gin.Context) *Context {
 	return &Context{Gin: c}
 }
 
-// TODO: Добавить описание.
+// NewHandler возвращает новый обработчик и в нем вызывает переданную функцию
+// с уже обернутым контекстом.
 func NewHandler(f func(c *Context)) gin.HandlerFunc {
 	return func(gc *gin.Context) {
 		f(New(gc))

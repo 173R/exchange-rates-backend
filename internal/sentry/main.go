@@ -1,7 +1,6 @@
 package sentry
 
 import (
-	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/wolframdeus/exchange-rates-backend/configs"
 )
@@ -29,10 +28,9 @@ func GetClientByConfig() (*sentry.Client, error) {
 
 // Init инициализирует глобальный хаб Sentry.
 func Init() error {
-	fmt.Printf("%+v\n", configs.Sentry)
 	return sentry.Init(sentry.ClientOptions{
 		Dsn:         configs.Sentry.Dsn,
-		Debug:       true,
+		Debug:       configs.App.Debug,
 		Environment: configs.Sentry.Env,
 	})
 }

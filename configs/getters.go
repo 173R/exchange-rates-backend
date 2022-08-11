@@ -41,6 +41,11 @@ func getString(key string) string {
 	return viper.GetString(key)
 }
 
+// Возвращает boolean на основе переданного ключа.
+func getBoolean(key string) bool {
+	return viper.GetBool(key)
+}
+
 // Возвращает string на основе переданного ключа. В случае, если значение
 // некорректно, будет выброшена ошибка.
 func getRequiredString(key string) string {

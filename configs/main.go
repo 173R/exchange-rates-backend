@@ -7,6 +7,8 @@ import (
 
 var once sync.Once
 
+// FIXME: Мы установили значения по умолчанию в документации, но не в коде!
+
 func InitViper() {
 	once.Do(func() {
 		// Указываем путь к конфиг файл.
