@@ -4,9 +4,12 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/jsonb"
 )
 
+// CurrencyId представляет собой идентификатор валюты.
+type CurrencyId string
+
 type Currency struct {
 	// Аббревиатура валюты.
-	Id string
+	Id CurrencyId
 	// Ключ перевода наименования валюты.
 	TitleKey string
 	// Информация об изображении.
