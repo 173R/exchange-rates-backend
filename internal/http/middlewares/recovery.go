@@ -9,7 +9,7 @@ import (
 // паник.
 func NewCustomRecoveryMiddleware() gin.HandlerFunc {
 	return gin.CustomRecovery(func(gc *gin.Context, err any) {
-		c := context.New(gc)
+		c := context.NewGin(gc)
 
 		if e, ok := err.(error); ok {
 			c.SendError(e.Error())

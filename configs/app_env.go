@@ -2,6 +2,7 @@ package configs
 
 const (
 	AppEnvLocal      AppEnv = "local"
+	AppEnvStaging    AppEnv = "staging"
 	AppEnvProduction AppEnv = "production"
 )
 

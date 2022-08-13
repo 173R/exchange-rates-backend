@@ -1,0 +1,13 @@
+type Currency {
+  # Аббревиатура валюты.
+  id: String!
+  # Наименование валюты.
+  title: String!
+  # Символ валюты.
+  sign: String!
+}
+
+type Query {
+  # Возвращает список всех известных валют.
+  currencies: [Currency!]!
+}

@@ -14,7 +14,8 @@ func NewContextConfigMiddleware(db *gorm.DB) gin.HandlerFunc {
 	curRep := repositories.NewCurrencies(db)
 	curSrv := services.NewCurrencies(curRep)
 
-	return context.NewHandler(func(c *context.Context) {
+	return context.NewGinHandler(func(c *context.Gin) {
 		c.InjectServices(curSrv)
+		c.InjectLaunchParams()
 	})
 }

@@ -4,11 +4,10 @@ import (
 	"fmt"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
+	cors "github.com/rs/cors/wrapper/gin"
 	"github.com/wolframdeus/exchange-rates-backend/configs"
-	"github.com/wolframdeus/exchange-rates-backend/internal/context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db"
 	http "github.com/wolframdeus/exchange-rates-backend/internal/http/middlewares"
-	"github.com/wolframdeus/exchange-rates-backend/internal/sentry"
 )
 
 type CurrencyModel struct {
@@ -19,21 +18,6 @@ type CurrencyModel struct {
 
 // Run запускает HTTP-сервер проекта.
 func Run() error {
-	// FIXME: Использовать локальный клиент.
-	//// Создаём клиент Sentry.
-	//sentryClient, err := sentry.GetClientByConfig()
-	//if err != nil {
-	//	return err
-	//}
-	if err := sentry.Init(); err != nil {
-		return err
-	}
-
-	// Включаем релиз-режим, если режим отладки не включён.
-	if !configs.App.Debug {
-		gin.SetMode("release")
-	}
-
 	// Создаем инстанс DB.
 	gormDb, err := db.NewByConfig()
 	if err != nil {
@@ -42,6 +26,9 @@ func Run() error {
 
 	// Создаем корневой обработчик Gin.
 	app := gin.New()
+
+	// Добавляем обработчик CORS запросов.
+	app.Use(cors.AllowAll())
 
 	// Добавляем обработчик для процессинга паник.
 	app.Use(http.NewCustomRecoveryMiddleware())
@@ -56,26 +43,8 @@ func Run() error {
 		Repanic: true,
 	}))
 
-	app.GET("/currencies", context.NewHandler(func(c *context.Context) {
-		// Получаем список всех валют.
-		cur, err := c.Services.Currencies.FindAll()
-		if err != nil {
-			c.SendError(err)
-			return
-		}
-
-		// Конвертируем полученные результаты к моделям.
-		res := make([]CurrencyModel, len(cur))
-		for i, c := range cur {
-			res[i] = CurrencyModel{
-				Id:       string(c.Id),
-				TitleKey: c.TitleKey,
-				Sign:     c.Sign,
-			}
-		}
-
-		c.SendData(res)
-	}))
+	// Добавляем обработчик GraphQL запросов.
+	app.POST("/gql", http.NewGraphQLMiddleware())
 
 	if err := app.Run(fmt.Sprintf("0.0.0.0:%d", configs.App.Port)); err != nil {
 		return err

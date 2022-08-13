@@ -19,3 +19,7 @@ migrations-down:
 	@echo "Count to rollback (leave empty to rollback everything): "
 	@read -r count && \
 	migrate -database $(DB_URI) -path $(MIGRATIONS) down $$count
+
+# Генерирует типы для GraphQL.
+generate-schema:
+	@go run github.com/99designs/gqlgen generate

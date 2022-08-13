@@ -16,7 +16,7 @@ func getAppEnv(key string) AppEnv {
 	value := AppEnv(getString(key))
 
 	switch value {
-	case AppEnvLocal, AppEnvProduction:
+	case AppEnvLocal, AppEnvProduction, AppEnvStaging:
 		return value
 	default:
 		panic(createError(key, "AppEnv"))
