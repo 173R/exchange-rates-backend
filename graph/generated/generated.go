@@ -163,7 +163,9 @@ var sources = []*ast.Source{
 }
 
 type Query {
-  # Возвращает список всех известных валют.
+  """
+  Возвращает список всех известных валют.
+  """
   currencies: [Currency!]!
 }
 `, BuiltIn: false},

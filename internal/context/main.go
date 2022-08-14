@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services"
+	services2 "github.com/wolframdeus/exchange-rates-backend/internal/services/translations"
 )
 
 const (
@@ -18,6 +19,8 @@ const (
 type Services struct {
 	// Сервис для работы с валютами.
 	Currencies *services.Currencies
+	// Сервис для работы с переводами.
+	Translations *services2.Translations
 }
 
 // Извлекает Services из контекста.

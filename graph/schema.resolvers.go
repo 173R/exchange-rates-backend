@@ -5,11 +5,10 @@ package graph
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/wolframdeus/exchange-rates-backend/graph/generated"
 	"github.com/wolframdeus/exchange-rates-backend/graph/model"
 	ctxpkg "github.com/wolframdeus/exchange-rates-backend/internal/context"
+	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 )
 
 // Currencies is the resolver for the currencies field.
@@ -22,15 +21,48 @@ func (r *queryResolver) Currencies(ctx context.Context) ([]*model.Currency, erro
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", c.LaunchParams)
+	// Получаем язык для того, чтобы перевести наименования валют.
+	lang := c.GetLanguage()
+
+	// Получаем все ключи переводов.
+	titleKeys := make([]models.TranslationId, len(currencies))
+
+	for i, c := range currencies {
+		titleKeys[i] = c.TitleTranslationId
+	}
+
+	// Получаем список всех переводов.
+	var trlMap map[models.TranslationId]*models.Translation
+	translations, err := c.Services.Translations.FindByIds(titleKeys)
+
+	if err == nil {
+		trlMap = make(map[models.TranslationId]*models.Translation, len(translations))
+
+		for _, t := range translations {
+			tValue := t
+			trlMap[t.Id] = &tValue
+		}
+	} else {
+		// TODO: Залогировать ошибку.
+	}
 
 	res := make([]*model.Currency, len(currencies))
 	for i, c := range currencies {
+		title := string(c.TitleTranslationId)
+
+		// Переводы могли быть не найдены, поэтому необходимо совершить эту
+		// проверку.
+		if trlMap != nil {
+			// Конкретный перевод также мог быть не найден.
+			if t, ok := trlMap[c.TitleTranslationId]; ok {
+				title = t.Translate(lang)
+			}
+		}
+
 		res[i] = &model.Currency{
-			ID:   string(c.Id),
-			Sign: c.Sign,
-			// TODO: Добавить перевод.
-			Title: c.TitleKey + " (will be translated)",
+			ID:    string(c.Id),
+			Sign:  c.Sign,
+			Title: title,
 		}
 	}
 

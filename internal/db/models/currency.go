@@ -11,7 +11,7 @@ type Currency struct {
 	// Аббревиатура валюты.
 	Id CurrencyId
 	// Ключ перевода наименования валюты.
-	TitleKey string
+	TitleTranslationId TranslationId
 	// Информация об изображении.
 	Images jsonb.Image
 	// Символ валюты.

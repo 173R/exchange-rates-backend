@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services"
+	services2 "github.com/wolframdeus/exchange-rates-backend/internal/services/translations"
 )
 
 type Gin struct {
@@ -44,8 +45,14 @@ func (c *Gin) SendError(data any) {
 }
 
 // InjectServices помещает в контекст gin список сервисов.
-func (c *Gin) InjectServices(curSrv *services.Currencies) {
-	c.inject(contextKeyServices, &Services{Currencies: curSrv})
+func (c *Gin) InjectServices(
+	curSrv *services.Currencies,
+	trlSrv *services2.Translations,
+) {
+	c.inject(contextKeyServices, &Services{
+		Currencies:   curSrv,
+		Translations: trlSrv,
+	})
 }
 
 // InjectLaunchParams извлекает из текущего запроса параметры запуска и

@@ -2,6 +2,7 @@ package context
 
 import (
 	"context"
+	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 )
 
@@ -13,6 +14,19 @@ type Graph struct {
 	Services *Services
 	// Список параметров запуска.
 	LaunchParams *launchparams.Params
+}
+
+// GetLanguage возвращает текущий язык запроса.
+func (g *Graph) GetLanguage() language.Lang {
+	if g.LaunchParams != nil {
+		lang := language.Lang(g.LaunchParams.Language)
+
+		switch lang {
+		case language.RU, language.EN:
+			return lang
+		}
+	}
+	return language.Default
 }
 
 // NewGraph возвращает ссылку на новый экземпляр Graph.

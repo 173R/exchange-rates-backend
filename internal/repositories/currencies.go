@@ -22,6 +22,16 @@ func (c *Currencies) UpdateById(
 	return c.db.Where("id = ?", id).Updates(currency).Error
 }
 
+// FindAll возвращает список всех валют.
+func (c *Currencies) FindAll() ([]models.Currency, error) {
+	var res []models.Currency
+
+	if err := c.db.Find(&res).Error; err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 // FindById возвращает валюту по её идентификатору.
 func (c *Currencies) FindById(id models.CurrencyId) (*models.Currency, error) {
 	var res []models.Currency
@@ -34,17 +44,6 @@ func (c *Currencies) FindById(id models.CurrencyId) (*models.Currency, error) {
 		return nil, nil
 	}
 	return &res[0], err
-}
-
-// FindAll возвращает список всех валют.
-func (c *Currencies) FindAll() ([]models.Currency, error) {
-	var res []models.Currency
-
-	err := c.db.Find(&res).Error
-	if err != nil {
-		return nil, err
-	}
-	return res, err
 }
 
 // NewCurrencies создает новый экземпляр Currencies.

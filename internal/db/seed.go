@@ -14,6 +14,9 @@ func RunSeeds() error {
 	}
 
 	// Выполняем все сиды.
+	if err := seedTranslations(db); err != nil {
+		return err
+	}
 	if err := seedCurrencies(db); err != nil {
 		return err
 	}
@@ -25,7 +28,7 @@ func seedCurrencies(db *gorm.DB) error {
 	rep := repositories.NewCurrencies(db)
 
 	// Получаем список всех валют.
-	currencies, err := rep.FindAll()
+	items, err := rep.FindAll()
 	if err != nil {
 		return err
 	}
@@ -34,30 +37,30 @@ func seedCurrencies(db *gorm.DB) error {
 	var toUpdate []models.Currency
 	seed := []models.Currency{
 		{
-			Id:       "USD",
-			Sign:     "$",
-			TitleKey: "usd_title",
+			Id:                 "USD",
+			Sign:               "$",
+			TitleTranslationId: "usd_title",
 		},
 		{
-			Id:       "EUR",
-			Sign:     "€",
-			TitleKey: "euro_title",
+			Id:                 "EUR",
+			Sign:               "€",
+			TitleTranslationId: "euro_title",
 		},
 	}
 
-	for _, sc := range seed {
+	for _, sItem := range seed {
 		found := false
 
-		for _, c := range currencies {
-			if sc.Id == c.Id {
-				toUpdate = append(toUpdate, sc)
+		for _, item := range items {
+			if sItem.Id == item.Id {
+				toUpdate = append(toUpdate, sItem)
 				found = true
 				break
 			}
 		}
 
 		if !found {
-			toCreate = append(toCreate, sc)
+			toCreate = append(toCreate, sItem)
 		}
 	}
 
@@ -69,6 +72,65 @@ func seedCurrencies(db *gorm.DB) error {
 	}
 
 	// Обновляем существующие валюты.
+	if len(toUpdate) > 0 {
+		for _, c := range toUpdate {
+			if err := rep.UpdateById(c.Id, &c); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Запускает сиды, связанные с переводами.
+func seedTranslations(db *gorm.DB) error {
+	rep := repositories.NewTranslations(db)
+
+	// Получаем список всех валют.
+	items, err := rep.FindAll()
+	if err != nil {
+		return err
+	}
+
+	var toCreate []models.Translation
+	var toUpdate []models.Translation
+	seed := []models.Translation{
+		{
+			Id: "usd_title",
+			Ru: models.TranslationJsonb{Default: "доллар"},
+			En: models.TranslationJsonb{Default: "dollar"},
+		},
+		{
+			Id: "euro_title",
+			Ru: models.TranslationJsonb{Default: "евро"},
+			En: models.TranslationJsonb{Default: "euro"},
+		},
+	}
+
+	for _, sItem := range seed {
+		found := false
+
+		for _, item := range items {
+			if sItem.Id == item.Id {
+				toUpdate = append(toUpdate, sItem)
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			toCreate = append(toCreate, sItem)
+		}
+	}
+
+	// Создаем отсутствующие переводы.
+	if len(toCreate) > 0 {
+		if err := rep.CreateMany(toCreate); err != nil {
+			return err
+		}
+	}
+
+	// Обновляем существующие переводы.
 	if len(toUpdate) > 0 {
 		for _, c := range toUpdate {
 			if err := rep.UpdateById(c.Id, &c); err != nil {

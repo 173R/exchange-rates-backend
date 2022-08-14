@@ -10,12 +10,6 @@ import (
 	http "github.com/wolframdeus/exchange-rates-backend/internal/http/middlewares"
 )
 
-type CurrencyModel struct {
-	Id       string `json:"id"`
-	TitleKey string `json:"title_key"`
-	Sign     string `json:"sign"`
-}
-
 // Run запускает HTTP-сервер проекта.
 func Run() error {
 	// Создаем инстанс DB.
