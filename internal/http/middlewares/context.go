@@ -5,7 +5,7 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services"
-	services2 "github.com/wolframdeus/exchange-rates-backend/internal/services/translations"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
 	"gorm.io/gorm"
 )
 
@@ -13,13 +13,18 @@ import (
 // который внедряет в контекст запроса список известных сервисов.
 func NewContextConfigMiddleware(db *gorm.DB) gin.HandlerFunc {
 	curRep := repositories.NewCurrencies(db)
-	trlRep := repositories.NewTranslations(db)
+	curSrv := currencies.New(curRep)
 
-	curSrv := services.NewCurrencies(curRep)
-	trlSrv := services2.NewTranslations(trlRep)
+	uRep := repositories.NewUsers(db)
+	uSrv := services.NewUsers(uRep)
 
 	return context.NewGinHandler(func(c *context.Gin) {
-		c.InjectServices(curSrv, trlSrv)
-		c.InjectLaunchParams()
+		// Инджектим сервисы.
+		c.InjectServices(curSrv, uSrv)
+
+		// Инджектим параметры запуска.
+		if err := c.InjectLaunchParams(); err != nil {
+			c.SendError(err)
+		}
 	})
 }

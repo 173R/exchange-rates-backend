@@ -6,16 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services"
-	services2 "github.com/wolframdeus/exchange-rates-backend/internal/services/translations"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
 )
 
 type Gin struct {
+	Context
 	// Оригинальный контекст gin.
 	Gin *gin.Context
-	// Список доступных сервисов.
-	Services *Services
-	// Список параметров запуска.
-	LaunchParams *launchparams.Params
 }
 
 // CaptureError захватывает ошибку и отправляет её в Sentry.
@@ -38,32 +35,41 @@ func (c *Gin) SendData(data any) {
 
 // SendError отправляет указанную ошибку удаленному клиенту.
 func (c *Gin) SendError(data any) {
+	if err, ok := data.(error); ok {
+		data = err.Error()
+	}
 	c.Gin.JSON(400, map[string]interface{}{
 		"ok":    false,
 		"error": data,
 	})
+	c.Gin.Abort()
 }
 
 // InjectServices помещает в контекст gin список сервисов.
-func (c *Gin) InjectServices(
-	curSrv *services.Currencies,
-	trlSrv *services2.Translations,
-) {
+func (c *Gin) InjectServices(curSrv *currencies.Currencies, uSrv *services.Users) {
 	c.inject(contextKeyServices, &Services{
-		Currencies:   curSrv,
-		Translations: trlSrv,
+		Currencies: curSrv,
+		Users:      uSrv,
 	})
 }
 
 // InjectLaunchParams извлекает из текущего запроса параметры запуска и
 // помещает их в контекст.
-func (c *Gin) InjectLaunchParams() {
-	// Пытаемся извлечь параметры запуска из заголовка.
-	params, err := launchparams.Derive(c.Gin.GetHeader(HeaderLaunchParams))
-	if err != nil {
-		return
+func (c *Gin) InjectLaunchParams() error {
+	// Извлекаем данные о параметрах запуска.
+	h := c.Gin.GetHeader(HeaderLaunchParams)
+	if h == "" {
+		return nil
 	}
+
+	// Пытаемся извлечь параметры запуска из заголовка.
+	params, err := launchparams.Derive(h)
+	if err != nil {
+		return err
+	}
+
 	c.inject(contextKeyLaunchParams, params)
+	return nil
 }
 
 func (c *Gin) inject(key string, value any) {
@@ -72,21 +78,11 @@ func (c *Gin) inject(key string, value any) {
 }
 
 // NewGin возвращает ссылку на новый экземпляр Gin.
-func NewGin(gc *gin.Context) *Gin {
-	c := &Gin{Gin: gc}
-	ctx := gc.Request.Context()
-
-	// Восстанавливаем список сервисов из контекста.
-	if srv := getServicesFromContext(ctx); srv != nil {
-		c.Services = srv
+func NewGin(ctx *gin.Context) *Gin {
+	return &Gin{
+		Context: *NewContext(ctx.Request.Context()),
+		Gin:     ctx,
 	}
-
-	// Восстанавливаем параметры запуска.
-	if params := getLaunchParamsFromContext(ctx); params != nil {
-		c.LaunchParams = params
-	}
-
-	return c
 }
 
 // NewGinHandler возвращает новый обработчик и в нем вызывает переданную функцию

@@ -2,9 +2,10 @@ package context
 
 import (
 	"context"
+	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services"
-	services2 "github.com/wolframdeus/exchange-rates-backend/internal/services/translations"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
 )
 
 const (
@@ -18,9 +19,48 @@ const (
 
 type Services struct {
 	// Сервис для работы с валютами.
-	Currencies *services.Currencies
-	// Сервис для работы с переводами.
-	Translations *services2.Translations
+	Currencies *currencies.Currencies
+	// Сервис для работы с пользователями.
+	Users *services.Users
+}
+
+// Context представляет собой контекст, который может быть использован как
+// в Gin, так и в GraphQL.
+type Context struct {
+	// Список доступных сервисов.
+	Services *Services
+	// Список параметров запуска.
+	LaunchParams *launchparams.Params
+}
+
+// GetLanguage возвращает текущий язык запроса.
+func (c *Context) GetLanguage() language.Lang {
+	if c.IsAnonymous() {
+		return language.Default
+	}
+	return c.LaunchParams.Language
+}
+
+// IsAnonymous возвращает true в случае, если запрос выполняется анонимно.
+func (c *Context) IsAnonymous() bool {
+	return c.LaunchParams == nil
+}
+
+// NewContext создает новый экземпляр Context.
+func NewContext(ctx context.Context) *Context {
+	c := &Context{}
+
+	// Восстанавливаем список сервисов из контекста.
+	if srv := getServicesFromContext(ctx); srv != nil {
+		c.Services = srv
+	}
+
+	// Восстанавливаем параметры запуска.
+	if params := getLaunchParamsFromContext(ctx); params != nil {
+		c.LaunchParams = params
+	}
+
+	return c
 }
 
 // Извлекает Services из контекста.

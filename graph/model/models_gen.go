@@ -3,7 +3,10 @@
 package model
 
 type Currency struct {
-	ID    string `json:"id"`
+	// Аббревиатура валюты.
+	ID string `json:"id"`
+	// Наименование валюты.
 	Title string `json:"title"`
-	Sign  string `json:"sign"`
+	// Символ валюты.
+	Sign string `json:"sign"`
 }
