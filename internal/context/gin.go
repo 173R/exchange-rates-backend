@@ -5,8 +5,8 @@ import (
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
-	"github.com/wolframdeus/exchange-rates-backend/internal/services"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/users"
 )
 
 type Gin struct {
@@ -46,7 +46,7 @@ func (c *Gin) SendError(data any) {
 }
 
 // InjectServices помещает в контекст gin список сервисов.
-func (c *Gin) InjectServices(curSrv *currencies.Currencies, uSrv *services.Users) {
+func (c *Gin) InjectServices(curSrv *currencies.Currencies, uSrv *users.Users) {
 	c.inject(contextKeyServices, &Services{
 		Currencies: curSrv,
 		Users:      uSrv,

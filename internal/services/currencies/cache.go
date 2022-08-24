@@ -2,7 +2,7 @@ package currencies
 
 import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
-	"github.com/wolframdeus/exchange-rates-backend/internal/repositories"
+	creppkg "github.com/wolframdeus/exchange-rates-backend/internal/repositories/currencies"
 	"sync"
 	"time"
 )
@@ -13,18 +13,18 @@ type cache struct {
 	updatedAt time.Time
 	// Кеш, в котором содержится последние полученные данные.
 	cache map[models.CurrencyId]*models.Currency
-	rep   *repositories.Currencies
+	rep   *creppkg.Currencies
 	mu    sync.Mutex
 }
 
 // FindByIds возвращает валюты по их ключам.
-func (c *cache) FindByIds(ids []models.CurrencyId) ([]models.Currency, error) {
+func (c *cache) FindByIds(ids []models.CurrencyId) ([]*models.Currency, error) {
 	err := c.sync()
-	res := make([]models.Currency, 0, len(ids))
+	res := make([]*models.Currency, 0, len(ids))
 
 	for _, id := range ids {
 		if item, ok := c.cache[id]; ok {
-			res = append(res, *item)
+			res = append(res, item)
 		}
 	}
 
@@ -42,12 +42,12 @@ func (c *cache) FindById(id models.CurrencyId) (*models.Currency, error) {
 }
 
 // FindAll возвращает все валюты.
-func (c *cache) FindAll() ([]models.Currency, error) {
+func (c *cache) FindAll() ([]*models.Currency, error) {
 	err := c.sync()
-	res := make([]models.Currency, 0, len(c.cache))
+	res := make([]*models.Currency, 0, len(c.cache))
 
 	for _, cur := range c.cache {
-		res = append(res, *cur)
+		res = append(res, cur)
 	}
 	return res, err
 }
@@ -75,8 +75,7 @@ func (c *cache) sync() error {
 	c.cache = make(map[models.CurrencyId]*models.Currency, len(currencies))
 
 	for _, cur := range currencies {
-		curVal := cur
-		c.cache[cur.Id] = &curVal
+		c.cache[cur.Id] = cur
 	}
 
 	// Устанавливаем новую дату обновления кеша.
@@ -86,7 +85,7 @@ func (c *cache) sync() error {
 }
 
 // Создает новый экземпляр cache.
-func newCache(rep *repositories.Currencies) *cache {
+func newCache(rep *creppkg.Currencies) *cache {
 	return &cache{
 		rep:   rep,
 		cache: map[models.CurrencyId]*models.Currency{},

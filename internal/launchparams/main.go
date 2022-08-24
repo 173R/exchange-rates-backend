@@ -32,17 +32,19 @@ func (p *Params) UnmarshalJSON(data []byte) error {
 	}
 
 	// Определяем локаль пользователя.
-	lang := language.Lang(p.LanguageRaw)
+	langRaw := *jp.Language
+	lang := language.Lang(langRaw)
 
 	switch lang {
 	case language.RU, language.EN:
+		break
 	default:
 		lang = language.Default
 	}
 
 	*p = Params{
 		UserId:      *jp.UserId,
-		LanguageRaw: p.LanguageRaw,
+		LanguageRaw: langRaw,
 		Language:    lang,
 	}
 	return nil

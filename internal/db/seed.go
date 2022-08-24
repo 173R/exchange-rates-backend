@@ -3,7 +3,7 @@ package db
 import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/jsonb"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
-	"github.com/wolframdeus/exchange-rates-backend/internal/repositories"
+	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/currencies"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +23,7 @@ func RunSeeds() error {
 
 // Запускает сиды, связанные с валютами.
 func seedCurrencies(db *gorm.DB) error {
-	rep := repositories.NewCurrencies(db)
+	rep := currencies.NewCurrencies(db)
 
 	// Получаем список всех валют.
 	items, err := rep.FindAll()

@@ -89,16 +89,15 @@ type Query {
 #  """
 #  currencyGraph(currencyId: String!): CurrencyGraph!
   "Возвращает информацию о текущем пользователе."
-  user: User!
+  user: User
 }
 
-#type Mutation {
-#  """
-#  Добавляет валюту в список отслеживаемых пользователем.
-#  """
-#  addUserObsCurrency(currencyId: String!): Boolean!
-#  """
-#  Устанавливает новую валюту в качестве избранной для текущего пользователя.
-#  """
-#  setUserFavCurrency(currencyId: String!): Boolean!
-#}
+type Mutation {
+  "Добавляет валюту в список отслеживаемых пользователем."
+  addUserObsCurrency(currencyId: String!): Boolean!
+  """
+  Устанавливает новую валюту в качестве избранной для текущего
+  пользователя.
+  """
+  setUserBaseCurrency(currencyId: String!): Boolean!
+}

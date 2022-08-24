@@ -1,4 +1,4 @@
-package repositories
+package currencies
 
 import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
@@ -23,8 +23,8 @@ func (c *Currencies) UpdateById(
 }
 
 // FindAll возвращает список всех валют.
-func (c *Currencies) FindAll() ([]models.Currency, error) {
-	var res []models.Currency
+func (c *Currencies) FindAll() ([]*models.Currency, error) {
+	var res []*models.Currency
 
 	if err := c.db.Find(&res).Error; err != nil {
 		return nil, err
@@ -44,6 +44,20 @@ func (c *Currencies) FindById(id models.CurrencyId) (*models.Currency, error) {
 		return nil, nil
 	}
 	return &res[0], err
+}
+
+// FindByIds возвращает валюты по их идентификаторам.
+func (c *Currencies) FindByIds(ids []models.CurrencyId) ([]*models.Currency, error) {
+	if len(ids) == 0 {
+		return []*models.Currency{}, nil
+	}
+	var res []*models.Currency
+
+	err := c.db.Where("id IN ?", ids).Limit(len(ids)).Find(&res).Error
+	if err != nil {
+		return nil, err
+	}
+	return res, err
 }
 
 // NewCurrencies создает новый экземпляр Currencies.
