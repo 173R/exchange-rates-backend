@@ -13,6 +13,19 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/graphdb"
 )
 
+// ConvertRate is the resolver for the convertRate field.
+func (r *currencyResolver) ConvertRate(ctx context.Context, obj *model.Currency) (float64, error) {
+	c := ctxpkg.NewGraph(ctx)
+
+	// Получаем курсы обмена валют.
+	latest, err := c.Services.ExchangeRates.FindLatest()
+	if err != nil {
+		return 0, err
+	}
+
+	return latest.GetConvertRate(models.CurrencyId(obj.ID))
+}
+
 // AddUserObsCurrency is the resolver for the addUserObsCurrency field.
 func (r *mutationResolver) AddUserObsCurrency(ctx context.Context, currencyID string) (bool, error) {
 	c := ctxpkg.NewGraph(ctx)
@@ -75,7 +88,7 @@ func (r *queryResolver) Currencies(ctx context.Context) ([]*model.Currency, erro
 
 	res := make([]*model.Currency, len(currencies))
 	for i, cur := range currencies {
-		res[i] = graphdb.CurrencyFromDb(cur, lang)
+		res[i] = graphdb.CurrencyFromDb(cur, 0, lang)
 	}
 
 	return res, nil
@@ -135,7 +148,7 @@ func (r *userResolver) ObservedCurrencies(ctx context.Context, obj *model.User) 
 	// Конвертируем валюты в модели.
 	res := make([]*model.Currency, len(currencies))
 	for i, cur := range currencies {
-		res[i] = graphdb.CurrencyFromDb(cur, lang)
+		res[i] = graphdb.CurrencyFromDb(cur, 0, lang)
 	}
 
 	return res, nil
@@ -154,8 +167,11 @@ func (r *userResolver) BaseCurrency(ctx context.Context, obj *model.User) (*mode
 		return nil, errors.New("base currency not found")
 	}
 
-	return graphdb.CurrencyFromDb(cur, c.Language()), nil
+	return graphdb.CurrencyFromDb(cur, 0, c.Language()), nil
 }
+
+// Currency returns generated.CurrencyResolver implementation.
+func (r *Resolver) Currency() generated.CurrencyResolver { return &currencyResolver{r} }
 
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
@@ -166,6 +182,7 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
+type currencyResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

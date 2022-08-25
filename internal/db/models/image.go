@@ -1,11 +1,11 @@
-package jsonb
+package models
 
 import (
 	"database/sql/driver"
 	"encoding/json"
 )
 
-type ImageSetItem struct {
+type ImageJsonbSetItem struct {
 	// Ширина изображения.
 	Width uint `json:"width"`
 	// Высота изображения.
@@ -16,15 +16,15 @@ type ImageSetItem struct {
 	Scale uint `json:"scale"`
 }
 
-type Image struct {
+type ImageJsonb struct {
 	// Список изображений.
-	Set []ImageSetItem `json:"set"`
+	Set []ImageJsonbSetItem `json:"set"`
 }
 
-func (v *Image) Scan(value any) error {
+func (v *ImageJsonb) Scan(value any) error {
 	return ScanTo(value, v)
 }
 
-func (v Image) Value() (driver.Value, error) {
+func (v ImageJsonb) Value() (driver.Value, error) {
 	return json.Marshal(v)
 }

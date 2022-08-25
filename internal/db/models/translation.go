@@ -1,4 +1,4 @@
-package jsonb
+package models
 
 import (
 	"database/sql/driver"
@@ -11,13 +11,13 @@ type TranslationItem struct {
 	Default string `json:"default"`
 }
 
-type Translation struct {
+type TranslationJsonb struct {
 	Ru *TranslationItem `json:"ru"`
 	En *TranslationItem `json:"en"`
 }
 
 // Translate возвращает перевод для указанного языка.
-func (t *Translation) Translate(lang language.Lang) string {
+func (t *TranslationJsonb) Translate(lang language.Lang) string {
 	switch lang {
 	case language.RU:
 		return t.Ru.Default
@@ -29,17 +29,17 @@ func (t *Translation) Translate(lang language.Lang) string {
 	}
 }
 
-func (t *Translation) Scan(value any) error {
+func (t *TranslationJsonb) Scan(value any) error {
 	return ScanTo(value, t)
 }
 
-func (t Translation) Value() (driver.Value, error) {
+func (t TranslationJsonb) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
 
-// NewTranslation возвращает новый экземпляр Translation.
-func NewTranslation(ru string, en string) *Translation {
-	return &Translation{
+// NewTranslationJsonb возвращает новый экземпляр TranslationJsonb.
+func NewTranslationJsonb(ru string, en string) *TranslationJsonb {
+	return &TranslationJsonb{
 		Ru: &TranslationItem{Default: ru},
 		En: &TranslationItem{Default: en},
 	}

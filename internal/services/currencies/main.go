@@ -24,7 +24,7 @@ func (c *Currencies) FindByIds(ids []models.CurrencyId) ([]*models.Currency, err
 	return c.cache.FindByIds(ids)
 }
 
-// New возвращает ссылку на новый экземпляр Currencies.
+// New возвращает указатель на новый экземпляр Currencies.
 func New(rep *currencies.Currencies) *Currencies {
 	return &Currencies{cache: newCache(rep)}
 }

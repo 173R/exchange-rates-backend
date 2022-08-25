@@ -36,6 +36,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Currency() CurrencyResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	User() UserResolver
@@ -46,9 +47,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Currency struct {
-		ID    func(childComplexity int) int
-		Sign  func(childComplexity int) int
-		Title func(childComplexity int) int
+		ConvertRate func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Sign        func(childComplexity int) int
+		Title       func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -63,10 +65,14 @@ type ComplexityRoot struct {
 
 	User struct {
 		BaseCurrency       func(childComplexity int) int
+		BaseCurrencyId     func(childComplexity int) int
 		ObservedCurrencies func(childComplexity int) int
 	}
 }
 
+type CurrencyResolver interface {
+	ConvertRate(ctx context.Context, obj *model.Currency) (float64, error)
+}
 type MutationResolver interface {
 	AddUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
 	SetUserBaseCurrency(ctx context.Context, currencyID string) (bool, error)
@@ -94,6 +100,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Currency.convertRate":
+		if e.complexity.Currency.ConvertRate == nil {
+			break
+		}
+
+		return e.complexity.Currency.ConvertRate(childComplexity), true
 
 	case "Currency.id":
 		if e.complexity.Currency.ID == nil {
@@ -160,6 +173,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.BaseCurrency(childComplexity), true
+
+	case "User.baseCurrencyId":
+		if e.complexity.User.BaseCurrencyId == nil {
+			break
+		}
+
+		return e.complexity.User.BaseCurrencyId(childComplexity), true
 
 	case "User.observedCurrencies":
 		if e.complexity.User.ObservedCurrencies == nil {
@@ -273,10 +293,10 @@ type Currency {
 #  Дата последнего обновления курса этой валюты.
 #  """
 #  exchangeRateUpdatedAt: Int!
-#  """
-#  Значение, которое используется для конвертации из одной валюты в другую.
-#  """
-#  convertRate: Float!
+  """
+  Значение, которое используется для конвертации из одной валюты в другую.
+  """
+  convertRate: Float!
 #  """
 #  Абсолютное значение изменения курса валюты относительно предыдущего дня.
 #  """
@@ -316,6 +336,8 @@ type User {
   observedCurrencies: [Currency!]!
   "Базовая валюта пользователя."
   baseCurrency: Currency!
+  "Идентификатор базовой валюты пользователя."
+  baseCurrencyId: String!
 }
 
 type Query {
@@ -561,6 +583,50 @@ func (ec *executionContext) fieldContext_Currency_sign(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _Currency_convertRate(ctx context.Context, field graphql.CollectedField, obj *model.Currency) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Currency_convertRate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Currency().ConvertRate(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Currency_convertRate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Currency",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_addUserObsCurrency(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_addUserObsCurrency(ctx, field)
 	if err != nil {
@@ -716,6 +782,8 @@ func (ec *executionContext) fieldContext_Query_currencies(ctx context.Context, f
 				return ec.fieldContext_Currency_title(ctx, field)
 			case "sign":
 				return ec.fieldContext_Currency_sign(ctx, field)
+			case "convertRate":
+				return ec.fieldContext_Currency_convertRate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Currency", field.Name)
 		},
@@ -763,6 +831,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_observedCurrencies(ctx, field)
 			case "baseCurrency":
 				return ec.fieldContext_User_baseCurrency(ctx, field)
+			case "baseCurrencyId":
+				return ec.fieldContext_User_baseCurrencyId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -944,6 +1014,8 @@ func (ec *executionContext) fieldContext_User_observedCurrencies(ctx context.Con
 				return ec.fieldContext_Currency_title(ctx, field)
 			case "sign":
 				return ec.fieldContext_Currency_sign(ctx, field)
+			case "convertRate":
+				return ec.fieldContext_Currency_convertRate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Currency", field.Name)
 		},
@@ -996,8 +1068,54 @@ func (ec *executionContext) fieldContext_User_baseCurrency(ctx context.Context, 
 				return ec.fieldContext_Currency_title(ctx, field)
 			case "sign":
 				return ec.fieldContext_Currency_sign(ctx, field)
+			case "convertRate":
+				return ec.fieldContext_Currency_convertRate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Currency", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_baseCurrencyId(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_baseCurrencyId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BaseCurrencyId, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_baseCurrencyId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2799,22 +2917,42 @@ func (ec *executionContext) _Currency(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = ec._Currency_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "title":
 
 			out.Values[i] = ec._Currency_title(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "sign":
 
 			out.Values[i] = ec._Currency_sign(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "convertRate":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Currency_convertRate(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3009,6 +3147,13 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				return innerFunc(ctx)
 
 			})
+		case "baseCurrencyId":
+
+			out.Values[i] = ec._User_baseCurrencyId(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3409,6 +3554,21 @@ func (ec *executionContext) marshalNCurrency2ᚖgithubᚗcomᚋwolframdeusᚋexc
 		return graphql.Null
 	}
 	return ec._Currency(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloatContext(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return graphql.WrapContextMarshaler(ctx, res)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

@@ -1,4 +1,4 @@
-package jsonb
+package models
 
 import (
 	"encoding/json"

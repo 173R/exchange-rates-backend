@@ -68,4 +68,8 @@ models:
         resolver: true
       observedCurrencies:
         resolver: true
+  Currency:
+    fields:
+      convertRate:
+        resolver: true
 

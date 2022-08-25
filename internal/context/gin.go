@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/exrates"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/users"
 )
 
@@ -46,10 +47,15 @@ func (c *Gin) SendError(data any) {
 }
 
 // InjectServices помещает в контекст gin список сервисов.
-func (c *Gin) InjectServices(curSrv *currencies.Currencies, uSrv *users.Users) {
+func (c *Gin) InjectServices(
+	curSrv *currencies.Currencies,
+	uSrv *users.Users,
+	exratesSrv *exrates.Service,
+) {
 	c.inject(contextKeyServices, &Services{
-		Currencies: curSrv,
-		Users:      uSrv,
+		Currencies:    curSrv,
+		Users:         uSrv,
+		ExchangeRates: exratesSrv,
 	})
 }
 
@@ -77,7 +83,7 @@ func (c *Gin) inject(key string, value any) {
 	c.Gin.Request = c.Gin.Request.WithContext(ctx)
 }
 
-// NewGin возвращает ссылку на новый экземпляр Gin.
+// NewGin возвращает указатель на новый экземпляр Gin.
 func NewGin(ctx *gin.Context) *Gin {
 	return &Gin{
 		Context: *NewContext(ctx.Request.Context()),

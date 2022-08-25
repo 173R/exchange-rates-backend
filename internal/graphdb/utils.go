@@ -7,10 +7,11 @@ import (
 )
 
 // CurrencyFromDb создает модель валюты из её модели БД.
-func CurrencyFromDb(c *models.Currency, lang language.Lang) *model.Currency {
+func CurrencyFromDb(c *models.Currency, convertRate float64, lang language.Lang) *model.Currency {
 	return &model.Currency{
-		ID:    string(c.Id),
-		Sign:  c.Sign,
-		Title: c.GetTitle(lang),
+		ID:          string(c.Id),
+		Sign:        c.Sign,
+		Title:       c.GetTitle(lang),
+		ConvertRate: convertRate,
 	}
 }

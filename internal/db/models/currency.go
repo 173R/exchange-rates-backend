@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/wolframdeus/exchange-rates-backend/internal/db/jsonb"
 	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 )
 
@@ -12,9 +11,9 @@ type Currency struct {
 	// Аббревиатура валюты.
 	Id CurrencyId
 	// Переводы наименования валюты.
-	Title *jsonb.Translation
+	Title *TranslationJsonb
 	// Информация об изображении.
-	Images *jsonb.Image
+	Images *ImageJsonb
 	// Символ валюты.
 	Sign string
 }

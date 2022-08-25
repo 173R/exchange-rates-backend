@@ -1,7 +1,6 @@
 package db
 
 import (
-	"github.com/wolframdeus/exchange-rates-backend/internal/db/jsonb"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/currencies"
 	"gorm.io/gorm"
@@ -37,12 +36,22 @@ func seedCurrencies(db *gorm.DB) error {
 		{
 			Id:    "USD",
 			Sign:  "$",
-			Title: jsonb.NewTranslation("Доллар", "Dollar"),
+			Title: models.NewTranslationJsonb("Доллар", "Dollar"),
 		},
 		{
 			Id:    "EUR",
 			Sign:  "€",
-			Title: jsonb.NewTranslation("Евро", "Euro"),
+			Title: models.NewTranslationJsonb("Евро", "Euro"),
+		},
+		{
+			Id:    "RUB",
+			Sign:  "₽",
+			Title: models.NewTranslationJsonb("Рубль", "Ruble"),
+		},
+		{
+			Id:    "GBP",
+			Sign:  "£",
+			Title: models.NewTranslationJsonb("Фунт Стерлингов", "Pound Sterling"),
 		},
 	}
 

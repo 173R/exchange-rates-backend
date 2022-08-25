@@ -9,4 +9,6 @@ type Currency struct {
 	Title string `json:"title"`
 	// Символ валюты.
 	Sign string `json:"sign"`
+	// Значение, которое используется для конвертации из одной валюты в другую.
+	ConvertRate float64 `json:"convertRate"`
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/exrates"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/users"
 	"sync"
 )
@@ -26,6 +27,8 @@ type Services struct {
 	Currencies *currencies.Currencies
 	// Сервис для работы с пользователями.
 	Users *users.Users
+	// Сервис для работы с курсами обменов валют.
+	ExchangeRates *exrates.Service
 }
 
 // Context представляет собой контекст, который может быть использован как

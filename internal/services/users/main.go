@@ -21,7 +21,7 @@ func (s *Users) UpdateBaseCurByTgUid(tgUid int64, cid models.CurrencyId) (bool, 
 	return s.rep.UpdateBaseCurByTgUid(tgUid, cid)
 }
 
-// NewUsers возвращает ссылку на новый экземпляр Users.
+// NewUsers возвращает указатель на новый экземпляр Users.
 func NewUsers(rep *users.Users) *Users {
 	return &Users{
 		rep:        rep,
