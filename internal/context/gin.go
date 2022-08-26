@@ -86,7 +86,7 @@ func (c *Gin) inject(key string, value any) {
 // NewGin возвращает указатель на новый экземпляр Gin.
 func NewGin(ctx *gin.Context) *Gin {
 	return &Gin{
-		Context: *NewContext(ctx.Request.Context()),
+		Context: *newContext(ctx.Request.Context()),
 		Gin:     ctx,
 	}
 }

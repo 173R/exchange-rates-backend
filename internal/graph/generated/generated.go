@@ -15,7 +15,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/introspection"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
-	"github.com/wolframdeus/exchange-rates-backend/graph/model"
+	"github.com/wolframdeus/exchange-rates-backend/internal/graph/model"
 )
 
 // region    ************************** generated!.gotpl **************************
@@ -765,7 +765,7 @@ func (ec *executionContext) _Query_currencies(ctx context.Context, field graphql
 	}
 	res := resTmp.([]*model.Currency)
 	fc.Result = res
-	return ec.marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐCurrencyᚄ(ctx, field.Selections, res)
+	return ec.marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrencyᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_currencies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -816,7 +816,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -997,7 +997,7 @@ func (ec *executionContext) _User_observedCurrencies(ctx context.Context, field 
 	}
 	res := resTmp.([]*model.Currency)
 	fc.Result = res
-	return ec.marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐCurrencyᚄ(ctx, field.Selections, res)
+	return ec.marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrencyᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_User_observedCurrencies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1051,7 +1051,7 @@ func (ec *executionContext) _User_baseCurrency(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.Currency)
 	fc.Result = res
-	return ec.marshalNCurrency2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐCurrency(ctx, field.Selections, res)
+	return ec.marshalNCurrency2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrency(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_User_baseCurrency(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3498,11 +3498,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNCurrency2githubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐCurrency(ctx context.Context, sel ast.SelectionSet, v model.Currency) graphql.Marshaler {
+func (ec *executionContext) marshalNCurrency2githubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrency(ctx context.Context, sel ast.SelectionSet, v model.Currency) graphql.Marshaler {
 	return ec._Currency(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐCurrencyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Currency) graphql.Marshaler {
+func (ec *executionContext) marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrencyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Currency) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3526,7 +3526,7 @@ func (ec *executionContext) marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNCurrency2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐCurrency(ctx, sel, v[i])
+			ret[i] = ec.marshalNCurrency2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrency(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3546,7 +3546,7 @@ func (ec *executionContext) marshalNCurrency2ᚕᚖgithubᚗcomᚋwolframdeusᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNCurrency2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐCurrency(ctx context.Context, sel ast.SelectionSet, v *model.Currency) graphql.Marshaler {
+func (ec *executionContext) marshalNCurrency2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrency(ctx context.Context, sel ast.SelectionSet, v *model.Currency) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -3881,7 +3881,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

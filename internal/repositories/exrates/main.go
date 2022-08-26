@@ -1,10 +1,8 @@
 package exrates
 
 import (
-	"errors"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Repository struct {
@@ -12,32 +10,35 @@ type Repository struct {
 }
 
 // FindLatest возвращает актуальный курс обмена.
-func (r *Repository) FindLatest() (*models.ExchangeRate, error) {
+func (r *Repository) FindLatest() ([]models.ExchangeRate, error) {
 	var res []models.ExchangeRate
 
-	if err := r.db.Order("timestamp DESC").Limit(1).Find(&res).Error; err != nil {
+	// FIXME: Исправить на gorm.
+	if err := r.
+		db.
+		Raw("select * from exchange_rates t join (select currency_id, MAX(timestamp) as timestamp from exchange_rates group by currency_id) x on x.currency_id = t.currency_id and x.timestamp = t.timestamp").
+		Scan(&res).
+		Error; err != nil {
 		return nil, err
 	}
-	if len(res) == 0 {
-		return nil, errors.New("no exchange rates records found")
-	}
-	return &res[0], nil
+	return res, nil
 }
 
-// Create создает новую запись в таблице.
-func (r *Repository) Create(ts time.Time, rates models.RatesJsonb) (*models.ExchangeRate, error) {
-	rec := &models.ExchangeRate{
-		Timestamp: ts,
-		Rates:     rates,
-	}
-
-	err := r.db.Create(rec).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return rec, nil
-}
+//
+//// Create создает новую запись в таблице.
+//func (r *Repository) Create(ts time.Time, rates models.RatesJsonb) (*models.ExchangeRate, error) {
+//	rec := &models.ExchangeRate{
+//		Timestamp: ts,
+//		Rates:     rates,
+//	}
+//
+//	err := r.db.Create(rec).Error
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return rec, nil
+//}
 
 // NewRepository создает новый экземпляр Repository.
 func NewRepository(db *gorm.DB) *Repository {

@@ -3,8 +3,8 @@ package http
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/gin-gonic/gin"
-	"github.com/wolframdeus/exchange-rates-backend/graph"
-	"github.com/wolframdeus/exchange-rates-backend/graph/generated"
+	"github.com/wolframdeus/exchange-rates-backend/internal/graph"
+	"github.com/wolframdeus/exchange-rates-backend/internal/graph/generated"
 )
 
 // NewGraphQLMiddleware возвращает новый обработчик для GraphQL запросов.

@@ -10,7 +10,7 @@ type Service struct {
 }
 
 // FindLatest возвращает актуальный курс обмена.
-func (s *Service) FindLatest() (*models.ExchangeRate, error) {
+func (s *Service) FindLatest() ([]models.ExchangeRate, error) {
 	return s.rep.FindLatest()
 }
 

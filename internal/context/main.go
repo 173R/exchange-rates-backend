@@ -98,8 +98,8 @@ func (c *Context) GetUser(ctx *context.Context) (*models.User, error) {
 	return u, nil
 }
 
-// NewContext создает новый экземпляр Context.
-func NewContext(ctx context.Context) *Context {
+// Создает новый экземпляр Context.
+func newContext(ctx context.Context) *Context {
 	c := &Context{}
 
 	// Восстанавливаем список сервисов из контекста.

@@ -1,8 +1,8 @@
 package graphdb
 
 import (
-	"github.com/wolframdeus/exchange-rates-backend/graph/model"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
+	"github.com/wolframdeus/exchange-rates-backend/internal/graph/model"
 	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 )
 

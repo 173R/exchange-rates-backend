@@ -10,5 +10,5 @@ type Graph struct {
 
 // NewGraph возвращает указатель на новый экземпляр Graph.
 func NewGraph(ctx context.Context) *Graph {
-	return &Graph{*NewContext(ctx)}
+	return &Graph{*newContext(ctx)}
 }
