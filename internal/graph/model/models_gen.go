@@ -9,6 +9,35 @@ type Currency struct {
 	Title string `json:"title"`
 	// Символ валюты.
 	Sign string `json:"sign"`
+	// Список изображений валюты.
+	Images []*Image `json:"images"`
+	// Информация о курсе обмена этой валюты.
+	ConvertRate *CurrencyConvertRate `json:"convertRate"`
+	// Абсолютное значение изменения курса валюты относительно предыдущего дня.
+	Diff *CurrencyDiff `json:"diff"`
+}
+
+type CurrencyConvertRate struct {
 	// Значение, которое используется для конвертации из одной валюты в другую.
-	ConvertRate float64 `json:"convertRate"`
+	Rate float64 `json:"rate"`
+	// Дата последнего обновления курса этой валюты.
+	UpdatedAt string `json:"updatedAt"`
+}
+
+type CurrencyDiff struct {
+	// Абсолютное значение изменения курса валюты относительно предыдущего дня.
+	Absolute float64 `json:"absolute"`
+	// Процентное значение изменения курса валюты относительно предыдущего дня.
+	Percents float64 `json:"percents"`
+}
+
+type Image struct {
+	// Ширина изображения.
+	Width int `json:"width"`
+	// Высота изображения.
+	Height int `json:"height"`
+	// Ссылка для получения изображения.
+	URL string `json:"url"`
+	// Увеличение изображения.
+	Scale int `json:"scale"`
 }

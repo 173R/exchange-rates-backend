@@ -23,9 +23,9 @@ func (r *Users) FindByTelegramUid(id int64) (*models.User, error) {
 	return &res[0], nil
 }
 
-// UpdateBaseCurByTgUid обновляет базовую валюту пользователя по его
+// SetBaseCurByTgUid обновляет базовую валюту пользователя по его
 // идентификатору Telegram.
-func (r *Users) UpdateBaseCurByTgUid(tgUid int64, cid models.CurrencyId) (bool, error) {
+func (r *Users) SetBaseCurByTgUid(tgUid int64, cid models.CurrencyId) (bool, error) {
 	res := r.
 		db.
 		Model(&models.User{}).

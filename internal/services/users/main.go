@@ -15,10 +15,10 @@ func (s *Users) FindByTelegramUid(id int64) (*models.User, error) {
 	return s.rep.FindByTelegramUid(id)
 }
 
-// UpdateBaseCurByTgUid обновляет базовую валюту пользователя по его
+// SetBaseCurByTgUid обновляет базовую валюту пользователя по его
 // идентификатору Telegram.
-func (s *Users) UpdateBaseCurByTgUid(tgUid int64, cid models.CurrencyId) (bool, error) {
-	return s.rep.UpdateBaseCurByTgUid(tgUid, cid)
+func (s *Users) SetBaseCurByTgUid(tgUid int64, cid models.CurrencyId) (bool, error) {
+	return s.rep.SetBaseCurByTgUid(tgUid, cid)
 }
 
 // NewUsers возвращает указатель на новый экземпляр Users.

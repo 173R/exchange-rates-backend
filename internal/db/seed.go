@@ -47,6 +47,16 @@ func seedCurrencies(db *gorm.DB) error {
 			Id:    "RUB",
 			Sign:  "₽",
 			Title: models.NewTranslationJsonb("Рубль", "Ruble"),
+			Images: &models.ImageJsonb{
+				Set: []models.ImageJsonbSetItem{
+					{
+						Width:  100,
+						Height: 200,
+						Url:    "https://privet-zriteli.ru/image.png",
+						Scale:  1,
+					},
+				},
+			},
 		},
 		{
 			Id:    "GBP",

@@ -6,38 +6,59 @@ package graph
 import (
 	"context"
 	"errors"
+	"time"
 
 	ctxpkg "github.com/wolframdeus/exchange-rates-backend/internal/context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/graph/generated"
-	model2 "github.com/wolframdeus/exchange-rates-backend/internal/graph/model"
+	"github.com/wolframdeus/exchange-rates-backend/internal/graph/model"
 	"github.com/wolframdeus/exchange-rates-backend/internal/graphdb"
 )
 
 // ConvertRate is the resolver for the convertRate field.
-func (r *currencyResolver) ConvertRate(ctx context.Context, obj *model2.Currency) (float64, error) {
+func (r *currencyResolver) ConvertRate(ctx context.Context, obj *model.Currency) (*model.CurrencyConvertRate, error) {
 	c := ctxpkg.NewGraph(ctx)
 
 	// Получаем курсы обмена валют.
+	// FIXME: Получать не ВСЕ актуальные курсы обмена, а только этой валюты.
 	latest, err := c.Services.ExchangeRates.FindLatest()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	var convertRate *float64
+	var rate *models.ExchangeRate
 	id := models.CurrencyId(obj.ID)
 
-	for _, rate := range latest {
-		if rate.CurrencyId == id {
-			convertRate = &rate.ConvertRate
+	for _, exrate := range latest {
+		if exrate.CurrencyId == id {
+			rate = exrate
 			break
 		}
 	}
 
-	if convertRate == nil {
-		return 0, errors.New("convert rate not found")
+	if rate == nil {
+		return nil, nil
 	}
-	return *convertRate, nil
+	return &model.CurrencyConvertRate{
+		Rate:      rate.ConvertRate,
+		UpdatedAt: rate.Timestamp.Format(time.RFC3339),
+	}, nil
+}
+
+// Diff is the resolver for the diff field.
+func (r *currencyResolver) Diff(ctx context.Context, obj *model.Currency) (*model.CurrencyDiff, error) {
+	c := ctxpkg.NewGraph(ctx)
+
+	// Находим изменение валюты.
+	adiff, pdiff, err := c.Services.ExchangeRates.FindPrevDayDiff(models.CurrencyId(obj.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.CurrencyDiff{
+		Absolute: adiff,
+		Percents: pdiff,
+	}, nil
 }
 
 // AddUserObsCurrency is the resolver for the addUserObsCurrency field.
@@ -79,7 +100,7 @@ func (r *mutationResolver) SetUserBaseCurrency(ctx context.Context, currencyID s
 	updated, err := c.
 		Services.
 		Users.
-		UpdateBaseCurByTgUid(c.LaunchParams.UserId, models.CurrencyId(currencyID))
+		SetBaseCurByTgUid(c.LaunchParams.UserId, models.CurrencyId(currencyID))
 	if err != nil {
 		return false, err
 	}
@@ -88,7 +109,7 @@ func (r *mutationResolver) SetUserBaseCurrency(ctx context.Context, currencyID s
 }
 
 // Currencies is the resolver for the currencies field.
-func (r *queryResolver) Currencies(ctx context.Context) ([]*model2.Currency, error) {
+func (r *queryResolver) Currencies(ctx context.Context) ([]*model.Currency, error) {
 	c := ctxpkg.NewGraph(ctx)
 
 	// Получаем список валют.
@@ -100,16 +121,16 @@ func (r *queryResolver) Currencies(ctx context.Context) ([]*model2.Currency, err
 	// Получаем язык для того, чтобы перевести наименования валют.
 	lang := c.Language()
 
-	res := make([]*model2.Currency, len(currencies))
+	res := make([]*model.Currency, len(currencies))
 	for i, cur := range currencies {
-		res[i] = graphdb.CurrencyFromDb(cur, 0, lang)
+		res[i] = graphdb.CurrencyFromDb(cur, lang)
 	}
 
 	return res, nil
 }
 
 // User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context) (*model2.User, error) {
+func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
 	c := ctxpkg.NewGraph(ctx)
 
 	// Для получения информации о текущем пользователе необходимо быть
@@ -127,11 +148,11 @@ func (r *queryResolver) User(ctx context.Context) (*model2.User, error) {
 		return nil, nil
 	}
 
-	return &model2.User{BaseCurrencyId: string(u.BaseCurrencyId)}, nil
+	return &model.User{BaseCurrencyId: string(u.BaseCurrencyId)}, nil
 }
 
 // ObservedCurrencies is the resolver for the observedCurrencies field.
-func (r *userResolver) ObservedCurrencies(ctx context.Context, obj *model2.User) ([]*model2.Currency, error) {
+func (r *userResolver) ObservedCurrencies(ctx context.Context, obj *model.User) ([]*model.Currency, error) {
 	c := ctxpkg.NewGraph(ctx)
 
 	// Получаем информацию о пользователе.
@@ -160,16 +181,16 @@ func (r *userResolver) ObservedCurrencies(ctx context.Context, obj *model2.User)
 	lang := c.Language()
 
 	// Конвертируем валюты в модели.
-	res := make([]*model2.Currency, len(currencies))
+	res := make([]*model.Currency, len(currencies))
 	for i, cur := range currencies {
-		res[i] = graphdb.CurrencyFromDb(cur, 0, lang)
+		res[i] = graphdb.CurrencyFromDb(cur, lang)
 	}
 
 	return res, nil
 }
 
 // BaseCurrency is the resolver for the baseCurrency field.
-func (r *userResolver) BaseCurrency(ctx context.Context, obj *model2.User) (*model2.Currency, error) {
+func (r *userResolver) BaseCurrency(ctx context.Context, obj *model.User) (*model.Currency, error) {
 	c := ctxpkg.NewGraph(ctx)
 
 	// Находим валюту.
@@ -181,7 +202,7 @@ func (r *userResolver) BaseCurrency(ctx context.Context, obj *model2.User) (*mod
 		return nil, errors.New("base currency not found")
 	}
 
-	return graphdb.CurrencyFromDb(cur, 0, c.Language()), nil
+	return graphdb.CurrencyFromDb(cur, c.Language()), nil
 }
 
 // Currency returns generated.CurrencyResolver implementation.

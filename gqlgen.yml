@@ -72,4 +72,6 @@ models:
     fields:
       convertRate:
         resolver: true
+      diff:
+        resolver: true
 

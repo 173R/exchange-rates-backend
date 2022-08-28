@@ -48,9 +48,28 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Currency struct {
 		ConvertRate func(childComplexity int) int
+		Diff        func(childComplexity int) int
 		ID          func(childComplexity int) int
+		Images      func(childComplexity int) int
 		Sign        func(childComplexity int) int
 		Title       func(childComplexity int) int
+	}
+
+	CurrencyConvertRate struct {
+		Rate      func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+	}
+
+	CurrencyDiff struct {
+		Absolute func(childComplexity int) int
+		Percents func(childComplexity int) int
+	}
+
+	Image struct {
+		Height func(childComplexity int) int
+		Scale  func(childComplexity int) int
+		URL    func(childComplexity int) int
+		Width  func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -71,7 +90,8 @@ type ComplexityRoot struct {
 }
 
 type CurrencyResolver interface {
-	ConvertRate(ctx context.Context, obj *model.Currency) (float64, error)
+	ConvertRate(ctx context.Context, obj *model.Currency) (*model.CurrencyConvertRate, error)
+	Diff(ctx context.Context, obj *model.Currency) (*model.CurrencyDiff, error)
 }
 type MutationResolver interface {
 	AddUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
@@ -108,12 +128,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Currency.ConvertRate(childComplexity), true
 
+	case "Currency.diff":
+		if e.complexity.Currency.Diff == nil {
+			break
+		}
+
+		return e.complexity.Currency.Diff(childComplexity), true
+
 	case "Currency.id":
 		if e.complexity.Currency.ID == nil {
 			break
 		}
 
 		return e.complexity.Currency.ID(childComplexity), true
+
+	case "Currency.images":
+		if e.complexity.Currency.Images == nil {
+			break
+		}
+
+		return e.complexity.Currency.Images(childComplexity), true
 
 	case "Currency.sign":
 		if e.complexity.Currency.Sign == nil {
@@ -128,6 +162,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Currency.Title(childComplexity), true
+
+	case "CurrencyConvertRate.rate":
+		if e.complexity.CurrencyConvertRate.Rate == nil {
+			break
+		}
+
+		return e.complexity.CurrencyConvertRate.Rate(childComplexity), true
+
+	case "CurrencyConvertRate.updatedAt":
+		if e.complexity.CurrencyConvertRate.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.CurrencyConvertRate.UpdatedAt(childComplexity), true
+
+	case "CurrencyDiff.absolute":
+		if e.complexity.CurrencyDiff.Absolute == nil {
+			break
+		}
+
+		return e.complexity.CurrencyDiff.Absolute(childComplexity), true
+
+	case "CurrencyDiff.percents":
+		if e.complexity.CurrencyDiff.Percents == nil {
+			break
+		}
+
+		return e.complexity.CurrencyDiff.Percents(childComplexity), true
+
+	case "Image.height":
+		if e.complexity.Image.Height == nil {
+			break
+		}
+
+		return e.complexity.Image.Height(childComplexity), true
+
+	case "Image.scale":
+		if e.complexity.Image.Scale == nil {
+			break
+		}
+
+		return e.complexity.Image.Scale(childComplexity), true
+
+	case "Image.url":
+		if e.complexity.Image.URL == nil {
+			break
+		}
+
+		return e.complexity.Image.URL(childComplexity), true
+
+	case "Image.width":
+		if e.complexity.Image.Width == nil {
+			break
+		}
+
+		return e.complexity.Image.Width(childComplexity), true
 
 	case "Mutation.addUserObsCurrency":
 		if e.complexity.Mutation.AddUserObsCurrency == nil {
@@ -255,24 +345,30 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../schema.graphqls", Input: `#type Image {
-#  """
-#  Ширина изображения.
-#  """
-#  width: Int!
-#  """
-#  Высота изображения.
-#  """
-#  height: Int!
-#  """
-#  Ссылка для получения изображения.
-#  """
-#  url: String!
-#  """
-#  Увеличение изображения.
-#  """
-#  scale: Int!
-#}
+	{Name: "../schema.graphqls", Input: `type Image {
+  "Ширина изображения."
+  width: Int!
+  "Высота изображения."
+  height: Int!
+  "Ссылка для получения изображения."
+  url: String!
+  "Увеличение изображения."
+  scale: Int!
+}
+
+type CurrencyConvertRate {
+  "Значение, которое используется для конвертации из одной валюты в другую."
+  rate: Float!
+  "Дата последнего обновления курса этой валюты."
+  updatedAt: String!
+}
+
+type CurrencyDiff {
+  "Абсолютное значение изменения курса валюты относительно предыдущего дня."
+  absolute: Float!
+  "Процентное значение изменения курса валюты относительно предыдущего дня."
+  percents: Float!
+}
 
 type Currency {
   "Аббревиатура валюты."
@@ -281,55 +377,13 @@ type Currency {
   title: String!
   "Символ валюты."
   sign: String!
-#  """
-#  Список изображений валюты.
-#  """
-#  images: [Image!]!
-#  """
-#  Текущий курс обмена относительно валюты, выбранной пользователем.
-#  """
-#  exchangeRate: Float!
-#  """
-#  Дата последнего обновления курса этой валюты.
-#  """
-#  exchangeRateUpdatedAt: Int!
-  """
-  Значение, которое используется для конвертации из одной валюты в другую.
-  """
-  convertRate: Float!
-#  """
-#  Абсолютное значение изменения курса валюты относительно предыдущего дня.
-#  """
-#  diffValue: Float!
-#  """
-#  Процентное значение изменения курса валюты относительно предыдущего дня.
-#  """
-#  diffPercents: Float!
+  "Список изображений валюты."
+  images: [Image!]!
+  "Информация о курсе обмена этой валюты."
+  convertRate: CurrencyConvertRate
+  "Абсолютное значение изменения курса валюты относительно предыдущего дня."
+  diff: CurrencyDiff
 }
-#
-#"""
-#Элемента графика изменения курса валюты.
-#"""
-#type CurrencyGraphItem {
-#  """
-#  Значение курса валюты.
-#  """
-#  value: Float!
-#  """
-#  Дата, в которую это значение было достигнуто.
-#  """
-#  timestamp: Int!
-#}
-#
-#"""
-#График изменения курса валюты.
-#"""
-#type CurrencyGraph {
-#  """
-#  Список элементов графика.
-#  """
-#  items: [CurrencyGraphItem!]!
-#}
 
 type User {
   "Список отслеживаемых пользователем валют."
@@ -360,7 +414,32 @@ type Mutation {
   """
   setUserBaseCurrency(currencyId: String!): Boolean!
 }
-`, BuiltIn: false},
+
+
+#
+#"""
+#Элемента графика изменения курса валюты.
+#"""
+#type CurrencyGraphItem {
+#  """
+#  Значение курса валюты.
+#  """
+#  value: Float!
+#  """
+#  Дата, в которую это значение было достигнуто.
+#  """
+#  timestamp: Int!
+#}
+#
+#"""
+#График изменения курса валюты.
+#"""
+#type CurrencyGraph {
+#  """
+#  Список элементов графика.
+#  """
+#  items: [CurrencyGraphItem!]!
+#}`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -583,6 +662,60 @@ func (ec *executionContext) fieldContext_Currency_sign(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _Currency_images(ctx context.Context, field graphql.CollectedField, obj *model.Currency) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Currency_images(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Images, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Image)
+	fc.Result = res
+	return ec.marshalNImage2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐImageᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Currency_images(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Currency",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "width":
+				return ec.fieldContext_Image_width(ctx, field)
+			case "height":
+				return ec.fieldContext_Image_height(ctx, field)
+			case "url":
+				return ec.fieldContext_Image_url(ctx, field)
+			case "scale":
+				return ec.fieldContext_Image_scale(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Image", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Currency_convertRate(ctx context.Context, field graphql.CollectedField, obj *model.Currency) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Currency_convertRate(ctx, field)
 	if err != nil {
@@ -604,6 +737,100 @@ func (ec *executionContext) _Currency_convertRate(ctx context.Context, field gra
 		return graphql.Null
 	}
 	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CurrencyConvertRate)
+	fc.Result = res
+	return ec.marshalOCurrencyConvertRate2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrencyConvertRate(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Currency_convertRate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Currency",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "rate":
+				return ec.fieldContext_CurrencyConvertRate_rate(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_CurrencyConvertRate_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CurrencyConvertRate", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Currency_diff(ctx context.Context, field graphql.CollectedField, obj *model.Currency) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Currency_diff(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Currency().Diff(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CurrencyDiff)
+	fc.Result = res
+	return ec.marshalOCurrencyDiff2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrencyDiff(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Currency_diff(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Currency",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "absolute":
+				return ec.fieldContext_CurrencyDiff_absolute(ctx, field)
+			case "percents":
+				return ec.fieldContext_CurrencyDiff_percents(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CurrencyDiff", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CurrencyConvertRate_rate(ctx context.Context, field graphql.CollectedField, obj *model.CurrencyConvertRate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CurrencyConvertRate_rate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Rate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
 		}
@@ -614,14 +841,322 @@ func (ec *executionContext) _Currency_convertRate(ctx context.Context, field gra
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Currency_convertRate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_CurrencyConvertRate_rate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Currency",
+		Object:     "CurrencyConvertRate",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CurrencyConvertRate_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.CurrencyConvertRate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CurrencyConvertRate_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CurrencyConvertRate_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CurrencyConvertRate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CurrencyDiff_absolute(ctx context.Context, field graphql.CollectedField, obj *model.CurrencyDiff) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CurrencyDiff_absolute(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Absolute, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CurrencyDiff_absolute(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CurrencyDiff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CurrencyDiff_percents(ctx context.Context, field graphql.CollectedField, obj *model.CurrencyDiff) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CurrencyDiff_percents(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Percents, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CurrencyDiff_percents(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CurrencyDiff",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Image_width(ctx context.Context, field graphql.CollectedField, obj *model.Image) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Image_width(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Width, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Image_width(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Image",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Image_height(ctx context.Context, field graphql.CollectedField, obj *model.Image) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Image_height(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Height, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Image_height(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Image",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Image_url(ctx context.Context, field graphql.CollectedField, obj *model.Image) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Image_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Image_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Image",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Image_scale(ctx context.Context, field graphql.CollectedField, obj *model.Image) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Image_scale(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Scale, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Image_scale(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Image",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -782,8 +1317,12 @@ func (ec *executionContext) fieldContext_Query_currencies(ctx context.Context, f
 				return ec.fieldContext_Currency_title(ctx, field)
 			case "sign":
 				return ec.fieldContext_Currency_sign(ctx, field)
+			case "images":
+				return ec.fieldContext_Currency_images(ctx, field)
 			case "convertRate":
 				return ec.fieldContext_Currency_convertRate(ctx, field)
+			case "diff":
+				return ec.fieldContext_Currency_diff(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Currency", field.Name)
 		},
@@ -1014,8 +1553,12 @@ func (ec *executionContext) fieldContext_User_observedCurrencies(ctx context.Con
 				return ec.fieldContext_Currency_title(ctx, field)
 			case "sign":
 				return ec.fieldContext_Currency_sign(ctx, field)
+			case "images":
+				return ec.fieldContext_Currency_images(ctx, field)
 			case "convertRate":
 				return ec.fieldContext_Currency_convertRate(ctx, field)
+			case "diff":
+				return ec.fieldContext_Currency_diff(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Currency", field.Name)
 		},
@@ -1068,8 +1611,12 @@ func (ec *executionContext) fieldContext_User_baseCurrency(ctx context.Context, 
 				return ec.fieldContext_Currency_title(ctx, field)
 			case "sign":
 				return ec.fieldContext_Currency_sign(ctx, field)
+			case "images":
+				return ec.fieldContext_Currency_images(ctx, field)
 			case "convertRate":
 				return ec.fieldContext_Currency_convertRate(ctx, field)
+			case "diff":
+				return ec.fieldContext_Currency_diff(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Currency", field.Name)
 		},
@@ -2933,6 +3480,13 @@ func (ec *executionContext) _Currency(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "images":
+
+			out.Values[i] = ec._Currency_images(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "convertRate":
 			field := field
 
@@ -2943,9 +3497,6 @@ func (ec *executionContext) _Currency(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._Currency_convertRate(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			}
 
@@ -2953,6 +3504,142 @@ func (ec *executionContext) _Currency(ctx context.Context, sel ast.SelectionSet,
 				return innerFunc(ctx)
 
 			})
+		case "diff":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Currency_diff(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var currencyConvertRateImplementors = []string{"CurrencyConvertRate"}
+
+func (ec *executionContext) _CurrencyConvertRate(ctx context.Context, sel ast.SelectionSet, obj *model.CurrencyConvertRate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, currencyConvertRateImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CurrencyConvertRate")
+		case "rate":
+
+			out.Values[i] = ec._CurrencyConvertRate_rate(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updatedAt":
+
+			out.Values[i] = ec._CurrencyConvertRate_updatedAt(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var currencyDiffImplementors = []string{"CurrencyDiff"}
+
+func (ec *executionContext) _CurrencyDiff(ctx context.Context, sel ast.SelectionSet, obj *model.CurrencyDiff) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, currencyDiffImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CurrencyDiff")
+		case "absolute":
+
+			out.Values[i] = ec._CurrencyDiff_absolute(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "percents":
+
+			out.Values[i] = ec._CurrencyDiff_percents(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var imageImplementors = []string{"Image"}
+
+func (ec *executionContext) _Image(ctx context.Context, sel ast.SelectionSet, obj *model.Image) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, imageImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Image")
+		case "width":
+
+			out.Values[i] = ec._Image_width(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "height":
+
+			out.Values[i] = ec._Image_height(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+
+			out.Values[i] = ec._Image_url(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "scale":
+
+			out.Values[i] = ec._Image_scale(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3571,6 +4258,75 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
+func (ec *executionContext) marshalNImage2ᚕᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐImageᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Image) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNImage2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐImage(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNImage2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐImage(ctx context.Context, sel ast.SelectionSet, v *model.Image) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Image(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3863,6 +4619,20 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOCurrencyConvertRate2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrencyConvertRate(ctx context.Context, sel ast.SelectionSet, v *model.CurrencyConvertRate) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CurrencyConvertRate(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOCurrencyDiff2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐCurrencyDiff(ctx context.Context, sel ast.SelectionSet, v *model.CurrencyDiff) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CurrencyDiff(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

@@ -3,6 +3,7 @@ package exrates
 import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"gorm.io/gorm"
+	"time"
 )
 
 type Repository struct {
@@ -10,13 +11,43 @@ type Repository struct {
 }
 
 // FindLatest возвращает актуальный курс обмена.
-func (r *Repository) FindLatest() ([]models.ExchangeRate, error) {
-	var res []models.ExchangeRate
+func (r *Repository) FindLatest() ([]*models.ExchangeRate, error) {
+	var res []*models.ExchangeRate
 
 	// FIXME: Исправить на gorm.
 	if err := r.
 		db.
-		Raw("select * from exchange_rates t join (select currency_id, MAX(timestamp) as timestamp from exchange_rates group by currency_id) x on x.currency_id = t.currency_id and x.timestamp = t.timestamp").
+		Raw(
+			"select t.id as id, t.timestamp as timestamp, t.currency_id as currency_id, t.convert_rate as convert_rate " +
+				"from exchange_rates t " +
+				"join (select currency_id, MAX(timestamp) as timestamp from exchange_rates group by currency_id) x " +
+				"on x.currency_id = t.currency_id and x.timestamp = t.timestamp",
+		).
+		Scan(&res).
+		Error; err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// FindByTimestamp возвращает первые встреченные курсы обменов, которые меньше
+// указанного ts.
+func (r *Repository) FindByTimestamp(ts time.Time) ([]*models.ExchangeRate, error) {
+	var res []*models.ExchangeRate
+
+	// FIXME: Исправить на gorm.
+	if err := r.
+		db.
+		Raw(
+			"select t.id as id, t.timestamp as timestamp, t.currency_id as currency_id, t.convert_rate as convert_rate "+
+				"from exchange_rates t "+
+				"join (select currency_id, MAX(timestamp) as timestamp "+
+				"from exchange_rates "+
+				"where timestamp < to_timestamp(?) "+
+				"group by currency_id) x "+
+				"on x.currency_id = t.currency_id and x.timestamp = t.timestamp",
+			ts.Unix(),
+		).
 		Scan(&res).
 		Error; err != nil {
 		return nil, err
