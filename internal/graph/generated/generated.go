@@ -73,8 +73,9 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddUserObsCurrency  func(childComplexity int, currencyID string) int
-		SetUserBaseCurrency func(childComplexity int, currencyID string) int
+		AddUserObsCurrency    func(childComplexity int, currencyID string) int
+		RemoveUserObsCurrency func(childComplexity int, currencyID string) int
+		SetUserBaseCurrency   func(childComplexity int, currencyID string) int
 	}
 
 	Query struct {
@@ -85,6 +86,7 @@ type ComplexityRoot struct {
 	User struct {
 		BaseCurrency       func(childComplexity int) int
 		BaseCurrencyId     func(childComplexity int) int
+		Id                 func(childComplexity int) int
 		ObservedCurrencies func(childComplexity int) int
 	}
 }
@@ -95,6 +97,7 @@ type CurrencyResolver interface {
 }
 type MutationResolver interface {
 	AddUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
+	RemoveUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
 	SetUserBaseCurrency(ctx context.Context, currencyID string) (bool, error)
 }
 type QueryResolver interface {
@@ -231,6 +234,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddUserObsCurrency(childComplexity, args["currencyId"].(string)), true
 
+	case "Mutation.removeUserObsCurrency":
+		if e.complexity.Mutation.RemoveUserObsCurrency == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeUserObsCurrency_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveUserObsCurrency(childComplexity, args["currencyId"].(string)), true
+
 	case "Mutation.setUserBaseCurrency":
 		if e.complexity.Mutation.SetUserBaseCurrency == nil {
 			break
@@ -270,6 +285,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.BaseCurrencyId(childComplexity), true
+
+	case "User.id":
+		if e.complexity.User.Id == nil {
+			break
+		}
+
+		return e.complexity.User.Id(childComplexity), true
 
 	case "User.observedCurrencies":
 		if e.complexity.User.ObservedCurrencies == nil {
@@ -386,6 +408,8 @@ type Currency {
 }
 
 type User {
+  "Идентификатор пользователя."
+  id: String!
   "Список отслеживаемых пользователем валют."
   observedCurrencies: [Currency!]!
   "Базовая валюта пользователя."
@@ -408,6 +432,8 @@ type Query {
 type Mutation {
   "Добавляет валюту в список отслеживаемых пользователем."
   addUserObsCurrency(currencyId: String!): Boolean!
+  "Удаляет валюту из списка отслеживаемых пользователем."
+  removeUserObsCurrency(currencyId: String!): Boolean!
   """
   Устанавливает новую валюту в качестве избранной для текущего
   пользователя.
@@ -448,6 +474,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // region    ***************************** args.gotpl *****************************
 
 func (ec *executionContext) field_Mutation_addUserObsCurrency_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["currencyId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currencyId"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["currencyId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeUserObsCurrency_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1217,6 +1258,61 @@ func (ec *executionContext) fieldContext_Mutation_addUserObsCurrency(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_removeUserObsCurrency(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeUserObsCurrency(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveUserObsCurrency(rctx, fc.Args["currencyId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeUserObsCurrency(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeUserObsCurrency_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_setUserBaseCurrency(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_setUserBaseCurrency(ctx, field)
 	if err != nil {
@@ -1366,6 +1462,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
 			case "observedCurrencies":
 				return ec.fieldContext_User_observedCurrencies(ctx, field)
 			case "baseCurrency":
@@ -1503,6 +1601,50 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Id, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3679,6 +3821,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "removeUserObsCurrency":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeUserObsCurrency(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "setUserBaseCurrency":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -3794,6 +3945,13 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("User")
+		case "id":
+
+			out.Values[i] = ec._User_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "observedCurrencies":
 			field := field
 

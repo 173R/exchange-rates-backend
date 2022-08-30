@@ -45,3 +45,12 @@ func (s *userCurrencies) Create(uid models.UserId, cid models.CurrencyId) (*mode
 func (s *userCurrencies) DeleteById(id models.UserObservedCurrencyId) (bool, error) {
 	return s.rep.Currencies.DeleteById(id)
 }
+
+// DeleteByUserAndCurrencyId удаляет связь пользователя с валютой по его и её
+// идентификаторам.
+func (s *userCurrencies) DeleteByUserAndCurrencyId(
+	uid models.UserId,
+	cid models.CurrencyId,
+) (bool, error) {
+	return s.rep.Currencies.DeleteByUserAndCurrencyId(uid, cid)
+}

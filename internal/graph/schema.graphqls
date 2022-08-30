@@ -39,6 +39,8 @@ type Currency {
 }
 
 type User {
+  "Идентификатор пользователя."
+  id: String!
   "Список отслеживаемых пользователем валют."
   observedCurrencies: [Currency!]!
   "Базовая валюта пользователя."
@@ -61,6 +63,8 @@ type Query {
 type Mutation {
   "Добавляет валюту в список отслеживаемых пользователем."
   addUserObsCurrency(currencyId: String!): Boolean!
+  "Удаляет валюту из списка отслеживаемых пользователем."
+  removeUserObsCurrency(currencyId: String!): Boolean!
   """
   Устанавливает новую валюту в качестве избранной для текущего
   пользователя.

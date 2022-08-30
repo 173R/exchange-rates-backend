@@ -45,3 +45,18 @@ func (r *userCurrencies) DeleteById(id models.UserObservedCurrencyId) (bool, err
 	}
 	return res.RowsAffected > 0, nil
 }
+
+// DeleteByUserAndCurrencyId удаляет связь пользователя с валютой по его и её
+// идентификаторам.
+func (r *userCurrencies) DeleteByUserAndCurrencyId(
+	uid models.UserId,
+	cid models.CurrencyId,
+) (bool, error) {
+	res := r.
+		db.
+		Delete(&models.UserObservedCurrency{}, "user_id = ? AND currency_id = ?", uid, cid)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
+}

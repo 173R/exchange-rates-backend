@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	ctxpkg "github.com/wolframdeus/exchange-rates-backend/internal/context"
@@ -18,27 +19,17 @@ import (
 // ConvertRate is the resolver for the convertRate field.
 func (r *currencyResolver) ConvertRate(ctx context.Context, obj *model.Currency) (*model.CurrencyConvertRate, error) {
 	c := ctxpkg.NewGraph(ctx)
+	cid := models.CurrencyId(obj.ID)
 
-	// Получаем курсы обмена валют.
-	// FIXME: Получать не ВСЕ актуальные курсы обмена, а только этой валюты.
-	latest, err := c.Services.ExchangeRates.FindLatest()
+	// Получаем курс обмена этой валюты.
+	rate, err := c.Services.ExchangeRates.FindLatestByCurrencyId(cid)
 	if err != nil {
 		return nil, err
 	}
-
-	var rate *models.ExchangeRate
-	id := models.CurrencyId(obj.ID)
-
-	for _, exrate := range latest {
-		if exrate.CurrencyId == id {
-			rate = exrate
-			break
-		}
-	}
-
 	if rate == nil {
 		return nil, nil
 	}
+
 	return &model.CurrencyConvertRate{
 		Rate:      rate.ConvertRate,
 		UpdatedAt: rate.Timestamp.Format(time.RFC3339),
@@ -86,6 +77,20 @@ func (r *mutationResolver) AddUserObsCurrency(ctx context.Context, currencyID st
 	}
 
 	return true, nil
+}
+
+// RemoveUserObsCurrency is the resolver for the removeUserObsCurrency field.
+func (r *mutationResolver) RemoveUserObsCurrency(ctx context.Context, currencyID string) (bool, error) {
+	c := ctxpkg.NewGraph(ctx)
+
+	// Получаем пользователя, который совершает запрос.
+	u, err := c.GetUser(&ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Удаляем связь пользователя с валютой.
+	return c.Services.Users.Currencies.DeleteByUserAndCurrencyId(u.Id, models.CurrencyId(currencyID))
 }
 
 // SetUserBaseCurrency is the resolver for the setUserBaseCurrency field.
@@ -148,25 +153,23 @@ func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
 		return nil, nil
 	}
 
-	return &model.User{BaseCurrencyId: string(u.BaseCurrencyId)}, nil
+	return &model.User{
+		Id:             strconv.FormatUint(uint64(u.Id), 10),
+		IdRaw:          int64(u.Id),
+		BaseCurrencyId: string(u.BaseCurrencyId),
+	}, nil
 }
 
 // ObservedCurrencies is the resolver for the observedCurrencies field.
 func (r *userResolver) ObservedCurrencies(ctx context.Context, obj *model.User) ([]*model.Currency, error) {
 	c := ctxpkg.NewGraph(ctx)
 
-	// Получаем информацию о пользователе.
-	u, err := c.GetUser(&ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	// Получаем список связей пользователя с валютами.
 	relations, err := c.
 		Services.
 		Users.
 		Currencies.
-		FindByUserId(u.Id)
+		FindByUserId(models.UserId(obj.IdRaw))
 	if err != nil {
 		return nil, err
 	}
