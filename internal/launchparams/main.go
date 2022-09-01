@@ -16,8 +16,8 @@ type Params struct {
 }
 
 type paramsJson struct {
-	Language *string `json:"language"`
-	UserId   *int64  `json:"user_id"`
+	Language string `json:"language"`
+	UserId   *int64 `json:"user_id"`
 }
 
 func (p *Params) UnmarshalJSON(data []byte) error {
@@ -32,7 +32,7 @@ func (p *Params) UnmarshalJSON(data []byte) error {
 	}
 
 	// Определяем локаль пользователя.
-	langRaw := *jp.Language
+	langRaw := jp.Language
 	lang := language.Lang(langRaw)
 
 	switch lang {

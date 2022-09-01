@@ -1,20 +1,21 @@
 package users
 
 import (
+	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"gorm.io/gorm"
 )
 
-type Users struct {
+type Repository struct {
 	db         *gorm.DB
 	Currencies *userCurrencies
 }
 
 // FindByTelegramUid возвращает пользователя по его идентификатору Telegram.
-func (r *Users) FindByTelegramUid(id int64) (*models.User, error) {
+func (r *Repository) FindByTelegramUid(ctx context.Context, id int64) (*models.User, error) {
 	var res []models.User
 
-	if err := r.db.Where("telegram_uid = ?", id).Limit(1).Find(&res).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("telegram_uid = ?", id).Limit(1).Find(&res).Error; err != nil {
 		return nil, err
 	}
 	if len(res) == 0 {
@@ -25,9 +26,10 @@ func (r *Users) FindByTelegramUid(id int64) (*models.User, error) {
 
 // SetBaseCurByTgUid обновляет базовую валюту пользователя по его
 // идентификатору Telegram.
-func (r *Users) SetBaseCurByTgUid(tgUid int64, cid models.CurrencyId) (bool, error) {
+func (r *Repository) SetBaseCurByTgUid(ctx context.Context, tgUid int64, cid models.CurrencyId) (bool, error) {
 	res := r.
 		db.
+		WithContext(ctx).
 		Model(&models.User{}).
 		Where("telegram_uid = ?", tgUid).
 		Update("base_currency_id", cid)
@@ -37,9 +39,9 @@ func (r *Users) SetBaseCurByTgUid(tgUid int64, cid models.CurrencyId) (bool, err
 	return res.RowsAffected > 0, nil
 }
 
-// NewUsers создает новый экземпляр Users.
-func NewUsers(db *gorm.DB) *Users {
-	return &Users{
+// NewRepository создает новый экземпляр Repository.
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{
 		db:         db,
 		Currencies: &userCurrencies{db: db},
 	}

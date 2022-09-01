@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/currencies"
 	"gorm.io/gorm"
@@ -22,10 +23,11 @@ func RunSeeds() error {
 
 // Запускает сиды, связанные с валютами.
 func seedCurrencies(db *gorm.DB) error {
-	rep := currencies.NewCurrencies(db)
+	rep := currencies.NewRepository(db)
+	ctx := context.TODO()
 
 	// Получаем список всех валют.
-	items, err := rep.FindAll()
+	items, err := rep.FindAll(ctx)
 	if err != nil {
 		return err
 	}
@@ -83,7 +85,7 @@ func seedCurrencies(db *gorm.DB) error {
 
 	// Создаем отсутствующие валюты.
 	if len(toCreate) > 0 {
-		if err := rep.CreateMany(toCreate); err != nil {
+		if err := rep.CreateMany(ctx, toCreate); err != nil {
 			return err
 		}
 	}
@@ -91,7 +93,7 @@ func seedCurrencies(db *gorm.DB) error {
 	// Обновляем существующие валюты.
 	if len(toUpdate) > 0 {
 		for _, c := range toUpdate {
-			if err := rep.UpdateById(c.Id, &c); err != nil {
+			if err := rep.UpdateById(ctx, c.Id, &c); err != nil {
 				return err
 			}
 		}

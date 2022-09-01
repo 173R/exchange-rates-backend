@@ -2,12 +2,10 @@ package context
 
 import (
 	"context"
+	"errors"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
-	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
-	"github.com/wolframdeus/exchange-rates-backend/internal/services/exrates"
-	"github.com/wolframdeus/exchange-rates-backend/internal/services/users"
 )
 
 type Gin struct {
@@ -46,26 +44,13 @@ func (c *Gin) SendError(data any) {
 	c.Gin.Abort()
 }
 
-// InjectServices помещает в контекст gin список сервисов.
-func (c *Gin) InjectServices(
-	curSrv *currencies.Currencies,
-	uSrv *users.Users,
-	exratesSrv *exrates.Service,
-) {
-	c.inject(contextKeyServices, &Services{
-		Currencies:    curSrv,
-		Users:         uSrv,
-		ExchangeRates: exratesSrv,
-	})
-}
-
 // InjectLaunchParams извлекает из текущего запроса параметры запуска и
 // помещает их в контекст.
 func (c *Gin) InjectLaunchParams() error {
 	// Извлекаем данные о параметрах запуска.
 	h := c.Gin.GetHeader(HeaderLaunchParams)
 	if h == "" {
-		return nil
+		return errors.New("auth header is empty")
 	}
 
 	// Пытаемся извлечь параметры запуска из заголовка.

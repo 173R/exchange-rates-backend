@@ -18,11 +18,10 @@ import (
 
 // ConvertRate is the resolver for the convertRate field.
 func (r *currencyResolver) ConvertRate(ctx context.Context, obj *model.Currency) (*model.CurrencyConvertRate, error) {
-	c := ctxpkg.NewGraph(ctx)
 	cid := models.CurrencyId(obj.ID)
 
 	// Получаем курс обмена этой валюты.
-	rate, err := c.Services.ExchangeRates.FindLatestByCurrencyId(cid)
+	rate, err := r.Services.ExchangeRates.FindLatestByCurrencyId(ctx, cid)
 	if err != nil {
 		return nil, err
 	}
@@ -38,10 +37,11 @@ func (r *currencyResolver) ConvertRate(ctx context.Context, obj *model.Currency)
 
 // Diff is the resolver for the diff field.
 func (r *currencyResolver) Diff(ctx context.Context, obj *model.Currency) (*model.CurrencyDiff, error) {
-	c := ctxpkg.NewGraph(ctx)
-
 	// Находим изменение валюты.
-	adiff, pdiff, err := c.Services.ExchangeRates.FindPrevDayDiff(models.CurrencyId(obj.ID))
+	adiff, pdiff, err := r.
+		Services.
+		ExchangeRates.
+		FindPrevDayDiff(ctx, models.CurrencyId(obj.ID))
 	if err != nil {
 		return nil, err
 	}
@@ -60,18 +60,24 @@ func (r *mutationResolver) AddUserObsCurrency(ctx context.Context, currencyID st
 		return false, errors.New("user not authorized")
 	}
 
+	// Получаем кеш из контекста.
+	cache, err := CacheFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	// Получаем информацию о пользователе.
-	u, err := c.GetUser(&ctx)
+	u, err := cache.GetUserByTgUid(ctx, c.LaunchParams.UserId)
 	if err != nil {
 		return false, err
 	}
 
 	// Создаём связь.
-	_, err = c.
+	_, err = r.
 		Services.
 		Users.
 		Currencies.
-		Create(u.Id, models.CurrencyId(currencyID))
+		Create(ctx, u.Id, models.CurrencyId(currencyID))
 	if err != nil {
 		return false, err
 	}
@@ -83,14 +89,20 @@ func (r *mutationResolver) AddUserObsCurrency(ctx context.Context, currencyID st
 func (r *mutationResolver) RemoveUserObsCurrency(ctx context.Context, currencyID string) (bool, error) {
 	c := ctxpkg.NewGraph(ctx)
 
-	// Получаем пользователя, который совершает запрос.
-	u, err := c.GetUser(&ctx)
+	// Получаем кеш из контекста.
+	cache, err := CacheFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Получаем информацию о пользователе.
+	u, err := cache.GetUserByTgUid(ctx, c.LaunchParams.UserId)
 	if err != nil {
 		return false, err
 	}
 
 	// Удаляем связь пользователя с валютой.
-	return c.Services.Users.Currencies.DeleteByUserAndCurrencyId(u.Id, models.CurrencyId(currencyID))
+	return r.Services.Users.Currencies.DeleteByUserAndCurrencyId(ctx, u.Id, models.CurrencyId(currencyID))
 }
 
 // SetUserBaseCurrency is the resolver for the setUserBaseCurrency field.
@@ -102,10 +114,10 @@ func (r *mutationResolver) SetUserBaseCurrency(ctx context.Context, currencyID s
 	}
 
 	// Обновляем базовую валюту.
-	updated, err := c.
+	updated, err := r.
 		Services.
 		Users.
-		SetBaseCurByTgUid(c.LaunchParams.UserId, models.CurrencyId(currencyID))
+		SetBaseCurByTgUid(ctx, c.LaunchParams.UserId, models.CurrencyId(currencyID))
 	if err != nil {
 		return false, err
 	}
@@ -118,7 +130,7 @@ func (r *queryResolver) Currencies(ctx context.Context) ([]*model.Currency, erro
 	c := ctxpkg.NewGraph(ctx)
 
 	// Получаем список валют.
-	currencies, err := c.Services.Currencies.FindAll()
+	currencies, err := r.Services.Currencies.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +157,7 @@ func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
 	}
 
 	// Находим пользователя по его идентификатору Telegram.
-	u, err := c.Services.Users.FindByTelegramUid(c.LaunchParams.UserId)
+	u, err := r.Services.Users.FindByTelegramUid(ctx, c.LaunchParams.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -165,17 +177,17 @@ func (r *userResolver) ObservedCurrencies(ctx context.Context, obj *model.User) 
 	c := ctxpkg.NewGraph(ctx)
 
 	// Получаем список связей пользователя с валютами.
-	relations, err := c.
+	relations, err := r.
 		Services.
 		Users.
 		Currencies.
-		FindByUserId(models.UserId(obj.IdRaw))
+		FindByUserId(ctx, models.UserId(obj.IdRaw))
 	if err != nil {
 		return nil, err
 	}
 
 	// Находим сами валюты.
-	currencies, err := c.Services.Currencies.FindByIds(relations.CurrencyIds())
+	currencies, err := r.Services.Currencies.FindByIds(ctx, relations.CurrencyIds())
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +209,7 @@ func (r *userResolver) BaseCurrency(ctx context.Context, obj *model.User) (*mode
 	c := ctxpkg.NewGraph(ctx)
 
 	// Находим валюту.
-	cur, err := c.Services.Currencies.FindById(models.CurrencyId(obj.BaseCurrencyId))
+	cur, err := r.Services.Currencies.FindById(ctx, models.CurrencyId(obj.BaseCurrencyId))
 	if err != nil {
 		return nil, err
 	}

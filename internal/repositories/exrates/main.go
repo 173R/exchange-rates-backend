@@ -1,6 +1,7 @@
 package exrates
 
 import (
+	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"gorm.io/gorm"
 	"time"
@@ -11,12 +12,13 @@ type Repository struct {
 }
 
 // FindLatest возвращает актуальный курс обмена.
-func (r *Repository) FindLatest() ([]*models.ExchangeRate, error) {
+func (r *Repository) FindLatest(ctx context.Context) ([]*models.ExchangeRate, error) {
 	var res []*models.ExchangeRate
 
 	// FIXME: Исправить на gorm.
 	if err := r.
 		db.
+		WithContext(ctx).
 		Raw(
 			"select t.id as id, t.timestamp as timestamp, t.currency_id as currency_id, t.convert_rate as convert_rate " +
 				"from exchange_rates t " +
@@ -32,12 +34,13 @@ func (r *Repository) FindLatest() ([]*models.ExchangeRate, error) {
 
 // FindByTimestamp возвращает первые встреченные курсы обменов, которые меньше
 // указанного ts.
-func (r *Repository) FindByTimestamp(ts time.Time) ([]*models.ExchangeRate, error) {
+func (r *Repository) FindByTimestamp(ctx context.Context, ts time.Time) ([]*models.ExchangeRate, error) {
 	var res []*models.ExchangeRate
 
 	// FIXME: Исправить на gorm.
 	if err := r.
 		db.
+		WithContext(ctx).
 		Raw(
 			"select t.id as id, t.timestamp as timestamp, t.currency_id as currency_id, t.convert_rate as convert_rate "+
 				"from exchange_rates t "+

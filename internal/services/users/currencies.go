@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"errors"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/utiltypes"
@@ -8,19 +9,19 @@ import (
 )
 
 type userCurrencies struct {
-	rep *users.Users
+	rep *users.Repository
 }
 
 // FindByUserId возвращает список всех обозреваемых указанным
 // пользователем валют.
-func (s *userCurrencies) FindByUserId(uid models.UserId) (utiltypes.UserObsCurrencies, error) {
-	return s.rep.Currencies.FindByUserId(uid)
+func (s *userCurrencies) FindByUserId(ctx context.Context, uid models.UserId) (utiltypes.UserObsCurrencies, error) {
+	return s.rep.Currencies.FindByUserId(ctx, uid)
 }
 
 // Create создает связь между пользователем и валютой.
-func (s *userCurrencies) Create(uid models.UserId, cid models.CurrencyId) (*models.UserObservedCurrency, error) {
+func (s *userCurrencies) Create(ctx context.Context, uid models.UserId, cid models.CurrencyId) (*models.UserObservedCurrency, error) {
 	// Для начала получаем количество отслеживаемых пользователем валют.
-	relations, err := s.rep.Currencies.FindByUserId(uid)
+	relations, err := s.rep.Currencies.FindByUserId(ctx, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -37,20 +38,21 @@ func (s *userCurrencies) Create(uid models.UserId, cid models.CurrencyId) (*mode
 		return nil, errors.New("observed currencies limit reached")
 	}
 
-	return s.rep.Currencies.Create(uid, cid)
+	return s.rep.Currencies.Create(ctx, uid, cid)
 }
 
 // DeleteById удаляет связь пользователя с валютой по идентификатору
 // связи.
-func (s *userCurrencies) DeleteById(id models.UserObservedCurrencyId) (bool, error) {
-	return s.rep.Currencies.DeleteById(id)
+func (s *userCurrencies) DeleteById(ctx context.Context, id models.UserObservedCurrencyId) (bool, error) {
+	return s.rep.Currencies.DeleteById(ctx, id)
 }
 
 // DeleteByUserAndCurrencyId удаляет связь пользователя с валютой по его и её
 // идентификаторам.
 func (s *userCurrencies) DeleteByUserAndCurrencyId(
+	ctx context.Context,
 	uid models.UserId,
 	cid models.CurrencyId,
 ) (bool, error) {
-	return s.rep.Currencies.DeleteByUserAndCurrencyId(uid, cid)
+	return s.rep.Currencies.DeleteByUserAndCurrencyId(ctx, uid, cid)
 }

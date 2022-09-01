@@ -1,30 +1,31 @@
 package currencies
 
 import (
+	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/currencies"
 )
 
-type Currencies struct {
+type Service struct {
 	cache *cache
 }
 
 // FindAll возвращает информацию о всех валютах.
-func (c *Currencies) FindAll() ([]*models.Currency, error) {
-	return c.cache.FindAll()
+func (c *Service) FindAll(ctx context.Context) ([]*models.Currency, error) {
+	return c.cache.FindAll(ctx)
 }
 
 // FindById возвращает валюту по её идентификатору.
-func (c *Currencies) FindById(id models.CurrencyId) (*models.Currency, error) {
-	return c.cache.FindById(id)
+func (c *Service) FindById(ctx context.Context, id models.CurrencyId) (*models.Currency, error) {
+	return c.cache.FindById(ctx, id)
 }
 
 // FindByIds возвращает валюты по их идентификаторам.
-func (c *Currencies) FindByIds(ids []models.CurrencyId) ([]*models.Currency, error) {
-	return c.cache.FindByIds(ids)
+func (c *Service) FindByIds(ctx context.Context, ids []models.CurrencyId) ([]*models.Currency, error) {
+	return c.cache.FindByIds(ctx, ids)
 }
 
-// New возвращает указатель на новый экземпляр Currencies.
-func New(rep *currencies.Currencies) *Currencies {
-	return &Currencies{cache: newCache(rep)}
+// NewService возвращает указатель на новый экземпляр Service.
+func NewService(rep *currencies.Repository) *Service {
+	return &Service{cache: newCache(rep)}
 }

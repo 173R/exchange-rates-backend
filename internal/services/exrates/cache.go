@@ -1,6 +1,7 @@
 package exrates
 
 import (
+	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/exrates"
 	"sync"
@@ -20,19 +21,19 @@ type cache struct {
 }
 
 // FindLatestById возвращает актуальный курс указанный валюты.
-func (c *cache) FindLatestById(id models.CurrencyId) (*models.ExchangeRate, error) {
-	err := c.sync()
+func (c *cache) FindLatestById(ctx context.Context, id models.CurrencyId) (*models.ExchangeRate, error) {
+	err := c.sync(ctx)
 	return c.latest[id], err
 }
 
 // FindPrevDayById возвращает курс указанный валюты за предыдущий день.
-func (c *cache) FindPrevDayById(id models.CurrencyId) (*models.ExchangeRate, error) {
-	err := c.sync()
+func (c *cache) FindPrevDayById(ctx context.Context, id models.CurrencyId) (*models.ExchangeRate, error) {
+	err := c.sync(ctx)
 	return c.prevDay[id], err
 }
 
 // В случае необходимости, синхронизирует текущий кеш с БД.
-func (c *cache) sync() error {
+func (c *cache) sync(ctx context.Context) error {
 	// Разрешаем работать с этим методом лишь 1 горутине в один момент времени.
 	c.mu.Lock()
 
@@ -45,7 +46,7 @@ func (c *cache) sync() error {
 	}
 
 	// Получаем самые свежие курсы обменов.
-	latest, err := c.rep.FindLatest()
+	latest, err := c.rep.FindLatest(ctx)
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,7 @@ func (c *cache) sync() error {
 	// запросе.
 	ts := time.Now().In(time.UTC).Truncate(24 * time.Hour)
 
-	prevDay, err := c.rep.FindByTimestamp(ts)
+	prevDay, err := c.rep.FindByTimestamp(ctx, ts)
 	if err != nil {
 		return err
 	}
