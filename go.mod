@@ -4,8 +4,10 @@ go 1.18
 
 require (
 	github.com/99designs/gqlgen v0.17.13
+	github.com/davecgh/go-spew v1.1.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/gin-gonic/gin v1.8.1
+	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/cors/wrapper/gin v0.0.0-20220619195839-da52b0701de5

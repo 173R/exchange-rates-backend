@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -50,6 +51,12 @@ func (r *currencyResolver) Diff(ctx context.Context, obj *model.Currency) (*mode
 		Absolute: adiff,
 		Percents: pdiff,
 	}, nil
+}
+
+// AuthenticateTg is the resolver for the authenticateTg field.
+func (r *mutationResolver) AuthenticateTg(ctx context.Context, initData string) (*model.AuthResult, error) {
+
+	panic(fmt.Errorf("not implemented"))
 }
 
 // AddUserObsCurrency is the resolver for the addUserObsCurrency field.

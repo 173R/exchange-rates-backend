@@ -46,6 +46,10 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AuthResult struct {
+		AccessToken func(childComplexity int) int
+	}
+
 	Currency struct {
 		ConvertRate func(childComplexity int) int
 		Diff        func(childComplexity int) int
@@ -72,8 +76,14 @@ type ComplexityRoot struct {
 		Width  func(childComplexity int) int
 	}
 
+	Jwt struct {
+		ExpiresAt func(childComplexity int) int
+		Token     func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AddUserObsCurrency    func(childComplexity int, currencyID string) int
+		AuthenticateTg        func(childComplexity int, initData string) int
 		RemoveUserObsCurrency func(childComplexity int, currencyID string) int
 		SetUserBaseCurrency   func(childComplexity int, currencyID string) int
 	}
@@ -96,6 +106,7 @@ type CurrencyResolver interface {
 	Diff(ctx context.Context, obj *model.Currency) (*model.CurrencyDiff, error)
 }
 type MutationResolver interface {
+	AuthenticateTg(ctx context.Context, initData string) (*model.AuthResult, error)
 	AddUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
 	RemoveUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
 	SetUserBaseCurrency(ctx context.Context, currencyID string) (bool, error)
@@ -123,6 +134,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AuthResult.access_token":
+		if e.complexity.AuthResult.AccessToken == nil {
+			break
+		}
+
+		return e.complexity.AuthResult.AccessToken(childComplexity), true
 
 	case "Currency.convertRate":
 		if e.complexity.Currency.ConvertRate == nil {
@@ -222,6 +240,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Image.Width(childComplexity), true
 
+	case "Jwt.expires_at":
+		if e.complexity.Jwt.ExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.Jwt.ExpiresAt(childComplexity), true
+
+	case "Jwt.token":
+		if e.complexity.Jwt.Token == nil {
+			break
+		}
+
+		return e.complexity.Jwt.Token(childComplexity), true
+
 	case "Mutation.addUserObsCurrency":
 		if e.complexity.Mutation.AddUserObsCurrency == nil {
 			break
@@ -233,6 +265,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AddUserObsCurrency(childComplexity, args["currencyId"].(string)), true
+
+	case "Mutation.authenticateTg":
+		if e.complexity.Mutation.AuthenticateTg == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_authenticateTg_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AuthenticateTg(childComplexity, args["initData"].(string)), true
 
 	case "Mutation.removeUserObsCurrency":
 		if e.complexity.Mutation.RemoveUserObsCurrency == nil {
@@ -418,6 +462,18 @@ type User {
   baseCurrencyId: String!
 }
 
+type Jwt {
+  "Сам токен."
+  token: String!
+  "Дата истечения этого токена."
+  expires_at: String!
+}
+
+type AuthResult {
+  "Токен для доступа к методам API."
+  access_token: Jwt!
+}
+
 type Query {
   "Возвращает список всех известных валют."
   currencies: [Currency!]!
@@ -430,6 +486,8 @@ type Query {
 }
 
 type Mutation {
+  "Производит аутентификацию пользователя через параметры запуска Telegram."
+  authenticateTg(initData: String!): AuthResult!
   "Добавляет валюту в список отслеживаемых пользователем."
   addUserObsCurrency(currencyId: String!): Boolean!
   "Удаляет валюту из списка отслеживаемых пользователем."
@@ -440,7 +498,6 @@ type Mutation {
   """
   setUserBaseCurrency(currencyId: String!): Boolean!
 }
-
 
 #
 #"""
@@ -485,6 +542,21 @@ func (ec *executionContext) field_Mutation_addUserObsCurrency_args(ctx context.C
 		}
 	}
 	args["currencyId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_authenticateTg_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["initData"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("initData"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["initData"] = arg0
 	return args, nil
 }
 
@@ -570,6 +642,56 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AuthResult_access_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResult_access_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccessToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Jwt)
+	fc.Result = res
+	return ec.marshalNJwt2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐJwt(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResult_access_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "token":
+				return ec.fieldContext_Jwt_token(ctx, field)
+			case "expires_at":
+				return ec.fieldContext_Jwt_expires_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Jwt", field.Name)
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Currency_id(ctx context.Context, field graphql.CollectedField, obj *model.Currency) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Currency_id(ctx, field)
@@ -1199,6 +1321,153 @@ func (ec *executionContext) fieldContext_Image_scale(ctx context.Context, field 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Jwt_token(ctx context.Context, field graphql.CollectedField, obj *model.Jwt) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Jwt_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Token, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Jwt_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Jwt",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Jwt_expires_at(ctx context.Context, field graphql.CollectedField, obj *model.Jwt) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Jwt_expires_at(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExpiresAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Jwt_expires_at(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Jwt",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_authenticateTg(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_authenticateTg(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AuthenticateTg(rctx, fc.Args["initData"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthResult)
+	fc.Result = res
+	return ec.marshalNAuthResult2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐAuthResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_authenticateTg(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "access_token":
+				return ec.fieldContext_AuthResult_access_token(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_authenticateTg_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -3591,6 +3860,34 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** object.gotpl ****************************
 
+var authResultImplementors = []string{"AuthResult"}
+
+func (ec *executionContext) _AuthResult(ctx context.Context, sel ast.SelectionSet, obj *model.AuthResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, authResultImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AuthResult")
+		case "access_token":
+
+			out.Values[i] = ec._AuthResult_access_token(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var currencyImplementors = []string{"Currency"}
 
 func (ec *executionContext) _Currency(ctx context.Context, sel ast.SelectionSet, obj *model.Currency) graphql.Marshaler {
@@ -3793,6 +4090,41 @@ func (ec *executionContext) _Image(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var jwtImplementors = []string{"Jwt"}
+
+func (ec *executionContext) _Jwt(ctx context.Context, sel ast.SelectionSet, obj *model.Jwt) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jwtImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Jwt")
+		case "token":
+
+			out.Values[i] = ec._Jwt_token(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "expires_at":
+
+			out.Values[i] = ec._Jwt_expires_at(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3812,6 +4144,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "authenticateTg":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_authenticateTg(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "addUserObsCurrency":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -4328,6 +4669,20 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAuthResult2githubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐAuthResult(ctx context.Context, sel ast.SelectionSet, v model.AuthResult) graphql.Marshaler {
+	return ec._AuthResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAuthResult2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐAuthResult(ctx context.Context, sel ast.SelectionSet, v *model.AuthResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AuthResult(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4483,6 +4838,16 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNJwt2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐJwt(ctx context.Context, sel ast.SelectionSet, v *model.Jwt) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Jwt(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

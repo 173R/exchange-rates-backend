@@ -2,6 +2,11 @@
 
 package model
 
+type AuthResult struct {
+	// Токен для доступа к методам API.
+	AccessToken *Jwt `json:"access_token"`
+}
+
 type Currency struct {
 	// Аббревиатура валюты.
 	ID string `json:"id"`
@@ -40,4 +45,11 @@ type Image struct {
 	URL string `json:"url"`
 	// Увеличение изображения.
 	Scale int `json:"scale"`
+}
+
+type Jwt struct {
+	// Сам токен.
+	Token string `json:"token"`
+	// Дата истечения этого токена.
+	ExpiresAt string `json:"expires_at"`
 }
