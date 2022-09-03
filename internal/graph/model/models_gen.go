@@ -5,6 +5,8 @@ package model
 type AuthResult struct {
 	// Токен для доступа к методам API.
 	AccessToken *Jwt `json:"access_token"`
+	// Токен для обновления токена доступа.
+	RefreshToken *Jwt `json:"refresh_token"`
 }
 
 type Currency struct {
@@ -48,7 +50,7 @@ type Image struct {
 }
 
 type Jwt struct {
-	// Сам токен.
+	// Значение токена.
 	Token string `json:"token"`
 	// Дата истечения этого токена.
 	ExpiresAt string `json:"expires_at"`

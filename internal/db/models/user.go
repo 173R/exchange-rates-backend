@@ -1,5 +1,7 @@
 package models
 
+import "github.com/wolframdeus/exchange-rates-backend/internal/tg"
+
 type UserId int64
 type UserObservedCurrencyId int64
 
@@ -7,7 +9,7 @@ type User struct {
 	// Идентификатор пользователя.
 	Id UserId
 	// Идентификатор пользователя Telegram.
-	TelegramUid int64
+	TelegramUid tg.UserId
 	// Базовая валюта, выбранная пользователем.
 	BaseCurrencyId CurrencyId
 }

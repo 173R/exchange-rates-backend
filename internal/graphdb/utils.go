@@ -4,6 +4,8 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/graph/model"
 	"github.com/wolframdeus/exchange-rates-backend/internal/language"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/auth"
+	"github.com/wolframdeus/exchange-rates-backend/internal/utils"
 )
 
 // CurrencyFromDb создает модель валюты из её модели БД.
@@ -32,4 +34,19 @@ func ImagesFromDb(img *models.ImageJsonb) []*model.Image {
 		}
 	}
 	return res
+}
+
+// AuthResultFromResult создает graphql-модель AuthResult из результата
+// аутентификации пользователя.
+func AuthResultFromResult(r *auth.Result) *model.AuthResult {
+	return &model.AuthResult{
+		AccessToken: &model.Jwt{
+			Token:     r.AccessToken.Token,
+			ExpiresAt: utils.TimeISO(r.AccessToken.ExpiresAt),
+		},
+		RefreshToken: &model.Jwt{
+			Token:     r.RefreshToken.Token,
+			ExpiresAt: utils.TimeISO(r.RefreshToken.ExpiresAt),
+		},
+	}
 }

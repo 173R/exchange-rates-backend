@@ -47,7 +47,8 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResult struct {
-		AccessToken func(childComplexity int) int
+		AccessToken  func(childComplexity int) int
+		RefreshToken func(childComplexity int) int
 	}
 
 	Currency struct {
@@ -83,7 +84,8 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddUserObsCurrency    func(childComplexity int, currencyID string) int
-		AuthenticateTg        func(childComplexity int, initData string) int
+		AuthenticateTg        func(childComplexity int, initData string, fp string) int
+		RefreshSession        func(childComplexity int, refreshToken string, fp string) int
 		RemoveUserObsCurrency func(childComplexity int, currencyID string) int
 		SetUserBaseCurrency   func(childComplexity int, currencyID string) int
 	}
@@ -106,9 +108,10 @@ type CurrencyResolver interface {
 	Diff(ctx context.Context, obj *model.Currency) (*model.CurrencyDiff, error)
 }
 type MutationResolver interface {
-	AuthenticateTg(ctx context.Context, initData string) (*model.AuthResult, error)
+	AuthenticateTg(ctx context.Context, initData string, fp string) (*model.AuthResult, error)
 	AddUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
 	RemoveUserObsCurrency(ctx context.Context, currencyID string) (bool, error)
+	RefreshSession(ctx context.Context, refreshToken string, fp string) (*model.AuthResult, error)
 	SetUserBaseCurrency(ctx context.Context, currencyID string) (bool, error)
 }
 type QueryResolver interface {
@@ -141,6 +144,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthResult.AccessToken(childComplexity), true
+
+	case "AuthResult.refresh_token":
+		if e.complexity.AuthResult.RefreshToken == nil {
+			break
+		}
+
+		return e.complexity.AuthResult.RefreshToken(childComplexity), true
 
 	case "Currency.convertRate":
 		if e.complexity.Currency.ConvertRate == nil {
@@ -276,7 +286,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AuthenticateTg(childComplexity, args["initData"].(string)), true
+		return e.complexity.Mutation.AuthenticateTg(childComplexity, args["initData"].(string), args["fp"].(string)), true
+
+	case "Mutation.refreshSession":
+		if e.complexity.Mutation.RefreshSession == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_refreshSession_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RefreshSession(childComplexity, args["refreshToken"].(string), args["fp"].(string)), true
 
 	case "Mutation.removeUserObsCurrency":
 		if e.complexity.Mutation.RemoveUserObsCurrency == nil {
@@ -463,7 +485,7 @@ type User {
 }
 
 type Jwt {
-  "Сам токен."
+  "Значение токена."
   token: String!
   "Дата истечения этого токена."
   expires_at: String!
@@ -472,6 +494,8 @@ type Jwt {
 type AuthResult {
   "Токен для доступа к методам API."
   access_token: Jwt!
+  "Токен для обновления токена доступа."
+  refresh_token: Jwt!
 }
 
 type Query {
@@ -487,11 +511,13 @@ type Query {
 
 type Mutation {
   "Производит аутентификацию пользователя через параметры запуска Telegram."
-  authenticateTg(initData: String!): AuthResult!
+  authenticateTg(initData: String! fp: String!): AuthResult!
   "Добавляет валюту в список отслеживаемых пользователем."
   addUserObsCurrency(currencyId: String!): Boolean!
   "Удаляет валюту из списка отслеживаемых пользователем."
   removeUserObsCurrency(currencyId: String!): Boolean!
+  "Обновляет сессию пользователя по переданному refresh token-у."
+  refreshSession(refreshToken: String! fp: String!): AuthResult!
   """
   Устанавливает новую валюту в качестве избранной для текущего
   пользователя.
@@ -557,6 +583,39 @@ func (ec *executionContext) field_Mutation_authenticateTg_args(ctx context.Conte
 		}
 	}
 	args["initData"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["fp"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fp"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["fp"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_refreshSession_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["refreshToken"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refreshToken"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["refreshToken"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["fp"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fp"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["fp"] = arg1
 	return args, nil
 }
 
@@ -675,6 +734,56 @@ func (ec *executionContext) _AuthResult_access_token(ctx context.Context, field 
 }
 
 func (ec *executionContext) fieldContext_AuthResult_access_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "token":
+				return ec.fieldContext_Jwt_token(ctx, field)
+			case "expires_at":
+				return ec.fieldContext_Jwt_expires_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Jwt", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthResult_refresh_token(ctx context.Context, field graphql.CollectedField, obj *model.AuthResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthResult_refresh_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RefreshToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Jwt)
+	fc.Result = res
+	return ec.marshalNJwt2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐJwt(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthResult_refresh_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResult",
 		Field:      field,
@@ -1427,7 +1536,7 @@ func (ec *executionContext) _Mutation_authenticateTg(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthenticateTg(rctx, fc.Args["initData"].(string))
+		return ec.resolvers.Mutation().AuthenticateTg(rctx, fc.Args["initData"].(string), fc.Args["fp"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1454,6 +1563,8 @@ func (ec *executionContext) fieldContext_Mutation_authenticateTg(ctx context.Con
 			switch field.Name {
 			case "access_token":
 				return ec.fieldContext_AuthResult_access_token(ctx, field)
+			case "refresh_token":
+				return ec.fieldContext_AuthResult_refresh_token(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResult", field.Name)
 		},
@@ -1576,6 +1687,67 @@ func (ec *executionContext) fieldContext_Mutation_removeUserObsCurrency(ctx cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_removeUserObsCurrency_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_refreshSession(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_refreshSession(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RefreshSession(rctx, fc.Args["refreshToken"].(string), fc.Args["fp"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthResult)
+	fc.Result = res
+	return ec.marshalNAuthResult2ᚖgithubᚗcomᚋwolframdeusᚋexchangeᚑratesᚑbackendᚋinternalᚋgraphᚋmodelᚐAuthResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_refreshSession(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "access_token":
+				return ec.fieldContext_AuthResult_access_token(ctx, field)
+			case "refresh_token":
+				return ec.fieldContext_AuthResult_refresh_token(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_refreshSession_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -3877,6 +4049,13 @@ func (ec *executionContext) _AuthResult(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "refresh_token":
+
+			out.Values[i] = ec._AuthResult_refresh_token(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4166,6 +4345,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_removeUserObsCurrency(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "refreshSession":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_refreshSession(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {

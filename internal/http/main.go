@@ -10,7 +10,9 @@ import (
 	http "github.com/wolframdeus/exchange-rates-backend/internal/http/middlewares"
 	curreppkg "github.com/wolframdeus/exchange-rates-backend/internal/repositories/currencies"
 	exratesreppkg "github.com/wolframdeus/exchange-rates-backend/internal/repositories/exrates"
+	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/refsessions"
 	ureppkg "github.com/wolframdeus/exchange-rates-backend/internal/repositories/users"
+	"github.com/wolframdeus/exchange-rates-backend/internal/services/auth"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/exrates"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/users"
@@ -28,6 +30,7 @@ func Run() error {
 	uSrv := users.NewService(ureppkg.NewRepository(gormDb))
 	exratesSrv := exrates.NewService(exratesreppkg.NewRepository(gormDb))
 	curSrv := currencies.NewService(curreppkg.NewRepository(gormDb))
+	authSrv := auth.NewService(uSrv, refsessions.NewRepository(gormDb))
 
 	// Создаем корневой обработчик Gin.
 	app := gin.New()
@@ -38,9 +41,6 @@ func Run() error {
 	// Добавляем обработчик для процессинга паник.
 	app.Use(http.NewCustomRecoveryMiddleware())
 
-	// Внедряем в контекст запроса необходимые сервисы.
-	app.Use(http.NewContextConfigMiddleware())
-
 	// Инициализируем стандартный обработчик Sentry.
 	app.Use(sentrygin.New(sentrygin.Options{
 		// Мы перевыбрасываем ошибку для того, чтобы прокинуть её в другие
@@ -49,7 +49,7 @@ func Run() error {
 	}))
 
 	// Добавляем обработчик GraphQL запросов.
-	app.POST("/gql", http.NewGraphQLMiddleware(curSrv, uSrv, exratesSrv))
+	app.POST("/gql", http.NewGraphQLMiddleware(curSrv, uSrv, exratesSrv, authSrv))
 
 	if err := app.Run(fmt.Sprintf("0.0.0.0:%d", configs.App.Port)); err != nil {
 		return err

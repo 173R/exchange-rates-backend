@@ -7,12 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/mitchellh/mapstructure"
+	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
+
+type UserId int64
 
 type InitData struct {
 	QueryId      string `mapstructure:"query_id"`
@@ -29,14 +32,14 @@ func (d *InitData) AuthDate() time.Time {
 }
 
 type User struct {
-	Id           int    `mapstructure:"id"`
-	IsBot        bool   `mapstructure:"is_bot"`
-	FirstName    string `mapstructure:"first_name"`
-	LastName     string `mapstructure:"last_name"`
-	Username     string `mapstructure:"username"`
-	LanguageCode string `mapstructure:"language_code"`
-	IsPremium    bool   `mapstructure:"is_premium"`
-	PhotoUrl     string `mapstructure:"photo_url"`
+	Id           UserId        `mapstructure:"id"`
+	IsBot        bool          `mapstructure:"is_bot"`
+	FirstName    string        `mapstructure:"first_name"`
+	LastName     string        `mapstructure:"last_name"`
+	Username     string        `mapstructure:"username"`
+	LanguageCode language.Lang `mapstructure:"language_code"`
+	IsPremium    bool          `mapstructure:"is_premium"`
+	PhotoUrl     string        `mapstructure:"photo_url"`
 }
 
 // ValidateInitData валидирует параметры запуска, которые были переданы из
@@ -53,8 +56,9 @@ func ValidateInitData(initData, token string) (bool, error) {
 	// Храним тут список пар ключ-значение.
 	pairs := make([]string, 0, len(params))
 
-	// Храним найденный хеш.
+	// Храним найденный хеш и дату создания параметров.
 	var hash string
+	var authDate time.Time
 
 	// Пробегаемся по всем полям и добавляем их в pairs.
 	for k, v := range params {
@@ -62,11 +66,27 @@ func ValidateInitData(initData, token string) (bool, error) {
 			hash = v[0]
 			continue
 		}
+		if k == "auth_date" {
+			if i, err := strconv.Atoi(v[0]); err == nil {
+				authDate = time.Unix(int64(i), 0)
+			}
+		}
 		pairs = append(pairs, k+"="+v[0])
 	}
 
+	// Хеш обязателен.
 	if hash == "" {
 		return false, errors.New("hash is empty")
+	}
+
+	// Дата создания параметров запуска обязательна.
+	if authDate.IsZero() {
+		return false, errors.New("auth_date is empty")
+	}
+
+	// Параметры запуска валидны лишь в течение 24 часов.
+	if authDate.Add(24 * time.Hour).Before(time.Now()) {
+		return false, errors.New("init data is expired")
 	}
 
 	// Сортируем по возрастанию ключа.
@@ -100,7 +120,7 @@ func ParseInitData(initData string) (*InitData, error) {
 
 		if val == "true" || val == "false" {
 			m[k] = val == "true"
-		} else if asInt, err := strconv.Atoi(val); err == nil {
+		} else if asInt, err := strconv.ParseInt(val, 10, 64); err == nil {
 			m[k] = asInt
 		} else {
 			// Сначала пытаемся спарсить строку как JSON.

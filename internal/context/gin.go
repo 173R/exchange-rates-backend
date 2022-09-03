@@ -1,11 +1,8 @@
 package context
 
 import (
-	"context"
-	"errors"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
-	"github.com/wolframdeus/exchange-rates-backend/internal/launchparams"
 )
 
 type Gin struct {
@@ -44,42 +41,10 @@ func (c *Gin) SendError(data any) {
 	c.Gin.Abort()
 }
 
-// InjectLaunchParams извлекает из текущего запроса параметры запуска и
-// помещает их в контекст.
-func (c *Gin) InjectLaunchParams() error {
-	// Извлекаем данные о параметрах запуска.
-	h := c.Gin.GetHeader(HeaderLaunchParams)
-	if h == "" {
-		return errors.New("auth header is empty")
-	}
-
-	// Пытаемся извлечь параметры запуска из заголовка.
-	params, err := launchparams.Derive(h)
-	if err != nil {
-		return err
-	}
-
-	c.inject(contextKeyLaunchParams, params)
-	return nil
-}
-
-func (c *Gin) inject(key string, value any) {
-	ctx := context.WithValue(c.Gin.Request.Context(), key, value)
-	c.Gin.Request = c.Gin.Request.WithContext(ctx)
-}
-
 // NewGin возвращает указатель на новый экземпляр Gin.
 func NewGin(ctx *gin.Context) *Gin {
 	return &Gin{
-		Context: *newContext(ctx.Request.Context()),
+		Context: Context{},
 		Gin:     ctx,
-	}
-}
-
-// NewGinHandler возвращает новый обработчик и в нем вызывает переданную функцию
-// с уже обернутым контекстом.
-func NewGinHandler(f func(c *Gin)) gin.HandlerFunc {
-	return func(gc *gin.Context) {
-		f(NewGin(gc))
 	}
 }

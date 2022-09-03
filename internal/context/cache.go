@@ -1,4 +1,4 @@
-package graph
+package context
 
 import (
 	"context"
@@ -23,9 +23,8 @@ type Cache struct {
 	user cacheKey[*models.User]
 }
 
-// GetUserByTgUid возвращает информацию о пользователе по его идентификатору
-// Telegram.
-func (c *Cache) GetUserByTgUid(ctx context.Context, uid int64) (*models.User, error) {
+// GetUser возвращает информацию о пользователе по его идентификатору.
+func (c *Cache) GetUser(ctx context.Context, uid models.UserId) (*models.User, error) {
 	// Блокируем и разблокируем мьютекс связанный с пользователем.
 	c.user.mu.Lock()
 	defer c.user.mu.Unlock()
@@ -36,7 +35,7 @@ func (c *Cache) GetUserByTgUid(ctx context.Context, uid int64) (*models.User, er
 	}
 
 	// Получаем информацию о пользователе и кешируем её.
-	u, err := c.userSrv.FindByTelegramUid(ctx, uid)
+	u, err := c.userSrv.FindById(ctx, uid)
 	if err != nil {
 		return nil, err
 	}

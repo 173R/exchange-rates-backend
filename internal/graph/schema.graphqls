@@ -50,7 +50,7 @@ type User {
 }
 
 type Jwt {
-  "Сам токен."
+  "Значение токена."
   token: String!
   "Дата истечения этого токена."
   expires_at: String!
@@ -59,6 +59,8 @@ type Jwt {
 type AuthResult {
   "Токен для доступа к методам API."
   access_token: Jwt!
+  "Токен для обновления токена доступа."
+  refresh_token: Jwt!
 }
 
 type Query {
@@ -74,11 +76,13 @@ type Query {
 
 type Mutation {
   "Производит аутентификацию пользователя через параметры запуска Telegram."
-  authenticateTg(initData: String!): AuthResult!
+  authenticateTg(initData: String! fp: String!): AuthResult!
   "Добавляет валюту в список отслеживаемых пользователем."
   addUserObsCurrency(currencyId: String!): Boolean!
   "Удаляет валюту из списка отслеживаемых пользователем."
   removeUserObsCurrency(currencyId: String!): Boolean!
+  "Обновляет сессию пользователя по переданному refresh token-у."
+  refreshSession(refreshToken: String! fp: String!): AuthResult!
   """
   Устанавливает новую валюту в качестве избранной для текущего
   пользователя.

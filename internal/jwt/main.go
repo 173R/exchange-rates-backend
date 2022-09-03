@@ -8,17 +8,46 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/wolframdeus/exchange-rates-backend/configs"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
+	"github.com/wolframdeus/exchange-rates-backend/internal/language"
+	"time"
 )
 
 // Информация о том, какие поля могут быть в JWT:
 // https://ru.wikipedia.org/wiki/JSON_Web_Token#Полезная_нагрузка
 
+type signResult struct {
+	// Токен доступа.
+	Token string
+	// Дата истечения срока годности токена.
+	ExpiresAt time.Time
+}
+
+type UserToken struct {
+	AccessToken  *signResult
+	RefreshToken *signResult
+}
+
 // Способ подписания пэйлоада который мы везде используем.
 var signMethod = jwt.SigningMethodHS256
 
-// SignUserAccessToken подписывает пользовательский токен доступа.
-func SignUserAccessToken(uid models.UserId) (string, error) {
-	return sign(&UserAccessToken{Uid: uid})
+// CreateUserToken создает токен для использования пользователем.
+func CreateUserToken(uid models.UserId, lang language.Lang) (*UserToken, error) {
+	// Генерируем токен доступа.
+	accessToken, err := sign(&UserAccessToken{
+		Uid:      uid,
+		Language: lang,
+	}, 30*time.Minute)
+	if err != nil {
+		return nil, err
+	}
+
+	// Генерируем токен для обновления токена доступа.
+	refreshToken, err := sign(map[string]interface{}{}, 30*24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserToken{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
 
 // DecodeUserAccessToken декодирует пользовательский токен доступа.
@@ -26,23 +55,40 @@ func DecodeUserAccessToken(token string) (*UserAccessToken, error) {
 	return decode[UserAccessToken](token)
 }
 
+// DecodeRefreshToken декодирует токен обновления.
+func DecodeRefreshToken(token string) error {
+	_, err := decode[interface{}](token)
+	return err
+}
+
 // Подписывает указанный payload.
-func sign(payload interface{}) (string, error) {
+func sign(payload interface{}, expIn time.Duration) (*signResult, error) {
 	// Сериализуем пэйлоад в массив байт.
 	bytes, err := json.Marshal(payload)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Конвертируем массив байт в карту.
 	var pmap map[string]interface{}
 	if err := json.Unmarshal(bytes, &pmap); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return jwt.
-		NewWithClaims(signMethod, jwt.MapClaims(pmap)).
-		SignedString(configs.Jwt.Secret)
+	expAt := time.Now().Add(expIn)
+
+	// Проставляем дату выдачи токена.
+	pmap["iat"] = time.Now().Unix()
+	// Добавляем дату истечения срока годности токена.
+	pmap["exp"] = expAt.Unix()
+
+	// Подписываем пэйлоад.
+	t, err := jwt.NewWithClaims(signMethod, jwt.MapClaims(pmap)).SignedString(configs.Jwt.Secret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &signResult{Token: t, ExpiresAt: expAt}, nil
 }
 
 // Проверяет токен на валидность, а также извлекает из него контент.
