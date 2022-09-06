@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
+	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/users"
 	"github.com/wolframdeus/exchange-rates-backend/internal/tg"
 )
@@ -13,8 +14,12 @@ type Service struct {
 }
 
 // CreateByTgUid создает стандартного пользователя с указанным Telegram ID.
-func (s *Service) CreateByTgUid(ctx context.Context, uid tg.UserId) (*models.User, error) {
-	return s.rep.CreateByTgUid(ctx, uid)
+func (s *Service) CreateByTgUid(
+	ctx context.Context,
+	uid tg.UserId,
+	lang language.Lang,
+) (*models.User, error) {
+	return s.rep.CreateByTgUid(ctx, uid, lang, getCidByLang(lang))
 }
 
 // FindByTelegramUid возвращает пользователя по его идентификатору Telegram.

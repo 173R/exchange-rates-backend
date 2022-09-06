@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
+	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"github.com/wolframdeus/exchange-rates-backend/internal/tg"
 	"gorm.io/gorm"
 )
@@ -13,11 +14,16 @@ type Repository struct {
 }
 
 // CreateByTgUid создает стандартного пользователя с указанным Telegram ID.
-func (r *Repository) CreateByTgUid(ctx context.Context, uid tg.UserId) (*models.User, error) {
+func (r *Repository) CreateByTgUid(
+	ctx context.Context,
+	tgUid tg.UserId,
+	lang language.Lang,
+	baseCid models.CurrencyId,
+) (*models.User, error) {
 	u := &models.User{
-		TelegramUid: uid,
-		// TODO: Вынести в константу.
-		BaseCurrencyId: "USD",
+		TelegramUid:    tgUid,
+		BaseCurrencyId: baseCid,
+		Lang:           lang,
 	}
 
 	if err := r.db.WithContext(ctx).Create(u).Error; err != nil {

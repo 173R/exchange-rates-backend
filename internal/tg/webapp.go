@@ -139,5 +139,10 @@ func ParseInitData(initData string) (*InitData, error) {
 	if err := mapstructure.Decode(m, &mapped); err != nil {
 		return nil, err
 	}
+
+	// Если язык не является нам известным, мы поставим язык по умолчанию.
+	if !mapped.User.LanguageCode.Known() {
+		mapped.User.LanguageCode = language.Default
+	}
 	return &mapped, nil
 }

@@ -2,7 +2,9 @@ package currencies
 
 import (
 	"context"
+	"github.com/wolframdeus/exchange-rates-backend/internal/customerrors"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
+	"github.com/wolframdeus/exchange-rates-backend/internal/sentry"
 	"gorm.io/gorm"
 )
 
@@ -29,7 +31,9 @@ func (c *Repository) FindAll(ctx context.Context) ([]*models.Currency, error) {
 	var res []*models.Currency
 
 	if err := c.db.WithContext(ctx).Find(&res).Error; err != nil {
-		return nil, err
+		return nil, customerrors.
+			New(err).
+			AddBreadcrumb(sentry.RepErrorBreadcrumb("currencies", "FindAll", nil))
 	}
 	return res, nil
 }
@@ -40,12 +44,20 @@ func (c *Repository) FindById(ctx context.Context, id models.CurrencyId) (*model
 
 	err := c.db.WithContext(ctx).Where("id = ?", id).Limit(1).Find(&res).Error
 	if err != nil {
-		return nil, err
+		return nil, customerrors.
+			New(err).
+			AddBreadcrumb(
+				sentry.RepErrorBreadcrumb(
+					"currencies",
+					"FindById",
+					map[string]interface{}{"id": id},
+				),
+			)
 	}
 	if len(res) == 0 {
 		return nil, nil
 	}
-	return &res[0], err
+	return &res[0], nil
 }
 
 // FindByIds возвращает валюты по их идентификаторам.

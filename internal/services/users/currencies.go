@@ -5,11 +5,19 @@ import (
 	"errors"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/utiltypes"
+	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/users"
 )
 
 type userCurrencies struct {
 	rep *users.Repository
+}
+
+// Карта, которая определяет, какая валюта считается базовой для указанного
+// языка.
+var langCurrencies = map[language.Lang]models.CurrencyId{
+	language.RU: "RUB",
+	language.EN: "USD",
 }
 
 // FindByUserId возвращает список всех обозреваемых указанным
@@ -55,4 +63,13 @@ func (s *userCurrencies) DeleteByUserAndCurrencyId(
 	cid models.CurrencyId,
 ) (bool, error) {
 	return s.rep.Currencies.DeleteByUserAndCurrencyId(ctx, uid, cid)
+}
+
+// Возвращает базовую валюту относительно какого-либо языка.
+func getCidByLang(lang language.Lang) models.CurrencyId {
+	cid, ok := langCurrencies[lang]
+	if ok {
+		return cid
+	}
+	return "USD"
 }

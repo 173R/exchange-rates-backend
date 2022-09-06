@@ -2,6 +2,7 @@ package language
 
 // Все языки должны иметь значения из этой таблицы:
 // https://en.wikipedia.org/wiki/IETF_language_tag#List_of_common_primary_language_subtags
+// TODO: Дозаполнить языки из спецификации.
 const (
 	// RU - русский.
 	RU Lang = "ru"

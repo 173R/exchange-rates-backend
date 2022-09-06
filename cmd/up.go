@@ -12,7 +12,7 @@ import (
 func init() {
 	RootCmd.AddCommand(&cobra.Command{
 		Use:   "up",
-		Short: "Запускает HTTP-сервер проекта вместе с миграциями.",
+		Short: "Запускает HTTP-сервер проекта вместе со всеми зависимостями.",
 		Run: func(cmd *cobra.Command, args []string) {
 			// Запускаем миграции.
 			if err := db.RunMigrations(); err != nil {

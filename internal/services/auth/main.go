@@ -6,7 +6,6 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/configs"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/jwt"
-	"github.com/wolframdeus/exchange-rates-backend/internal/language"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/refsessions"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/users"
 	"github.com/wolframdeus/exchange-rates-backend/internal/tg"
@@ -61,91 +60,114 @@ func (s *Service) AuthenticateTg(
 		return nil, err
 	}
 
-	// Создаем токены для пользователя.
-	ut, err := jwt.CreateUserToken(u.Id, p.User.LanguageCode)
-	if err != nil {
-		return nil, err
-	}
-
-	// Если пользователь существует, то нужно совершать дополнительные
-	// операции связанный с session-менджментом.
-	if u != nil {
-		// Получаем список всех сессий.
-		sess, err := s.refRep.FindByUserId(ctx, u.Id)
+	// Пользователь не существовал, поэтому его необходимо создать.
+	if u == nil {
+		// В противном случае просто создадим пользователя.
+		u, err = s.uSrv.CreateByTgUid(ctx, p.User.Id, p.User.LanguageCode)
 		if err != nil {
 			return nil, err
 		}
 
-		// Пытаемся найти предыдущую сессию с таким же fingerprint-ом.
-		// Если такая сессия существует, то мы её просто инвалидируем и
-		// обновим в БД.
-		var prevSession *models.RefreshSession
-
-		for _, session := range sess {
-			if session.Fingerprint == fp {
-				prevSession = session
-				break
-			}
-		}
-
-		// Предыдущая сессия была найдена. Инвалидируем её.
-		if prevSession != nil {
-			// TODO: Инвалидировать access token, который был до этого в сессии.
-			// Обновляем информацию о сессии.
-			if err := s.refRep.RefreshById(
-				ctx,
-				prevSession.Id,
-				ut.RefreshToken.Token,
-				ut.RefreshToken.ExpiresAt,
-				ut.AccessToken.Token,
-			); err != nil {
-				return nil, err
-			}
-
-			// Переназначаем дату создания предыдущей сессии для возможных
-			// дальнейших алгоритмов, которые эти сессии сортируем по дате
-			// создания.
-			prevSession.CreatedAt = time.Now()
-		} else {
-			newSess, err := s.refRep.Create(
-				ctx,
-				u.Id,
-				ut.RefreshToken.Token,
-				ut.AccessToken.Token,
-				fp,
-				ut.RefreshToken.ExpiresAt,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			// Добавляем новосозданную сессию в список известных.
-			sess = append(sess, newSess)
-		}
-
-		// Мы не допускаем одновременного наличия более 5 сессий.
-		if len(sess) > 5 {
-			// Сортируем сессии по дате убывания их создания.
-			sort.SliceStable(sess, func(i, j int) bool {
-				return sess[i].CreatedAt.After(sess[j].CreatedAt)
-			})
-
-			// Получаем список идентификаторов тех сессий, которые нужно
-			// инвалидировать.
-			dropSessIds := make([]models.RefreshSessionId, len(sess)-5)
-			for i, session := range sess[5:] {
-				dropSessIds[i] = session.Id
-			}
-
-			// TODO: Инвалидировать access token-ы в сессиях.
-			if _, err := s.refRep.DeleteByIds(ctx, dropSessIds); err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		// В противном случае просто создадим пользователя.
-		u, err = s.uSrv.CreateByTgUid(ctx, p.User.Id)
+		// Создаем токены для пользователя.
+		ut, err := jwt.CreateUserToken(u.Id, u.Lang)
 		if err != nil {
+			return nil, err
+		}
+
+		// Создаем сессию пользователя.
+		_, err = s.refRep.Create(
+			ctx,
+			u.Id,
+			ut.RefreshToken.Token,
+			ut.AccessToken.Token,
+			fp,
+			ut.RefreshToken.ExpiresAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return resultFromUserToken(ut), nil
+	}
+
+	// Если пользователь существовал, то нужно совершать дополнительные
+	// операции связанные с session-менджментом.
+
+	// Создаем токены для пользователя.
+	ut, err := jwt.CreateUserToken(u.Id, u.Lang)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем список всех сессий.
+	sess, err := s.refRep.FindByUserId(ctx, u.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Пытаемся найти предыдущую сессию с таким же fingerprint-ом.
+	// Если такая сессия существует, то мы её просто инвалидируем и
+	// обновим в БД.
+	var prevSession *models.RefreshSession
+
+	for _, session := range sess {
+		if session.Fingerprint == fp {
+			prevSession = session
+			break
+		}
+	}
+
+	// Предыдущая сессия была найдена. Инвалидируем её.
+	if prevSession != nil {
+		// TODO: Инвалидировать access token, который был до этого в сессии.
+		// Обновляем информацию о сессии.
+		if err := s.refRep.RefreshById(
+			ctx,
+			prevSession.Id,
+			ut.RefreshToken.Token,
+			ut.RefreshToken.ExpiresAt,
+			ut.AccessToken.Token,
+		); err != nil {
+			return nil, err
+		}
+
+		// Переназначаем дату создания предыдущей сессии для возможных
+		// дальнейших алгоритмов, которые эти сессии сортируем по дате
+		// создания.
+		prevSession.CreatedAt = time.Now()
+	} else {
+		newSess, err := s.refRep.Create(
+			ctx,
+			u.Id,
+			ut.RefreshToken.Token,
+			ut.AccessToken.Token,
+			fp,
+			ut.RefreshToken.ExpiresAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Добавляем новосозданную сессию в список известных.
+		sess = append(sess, newSess)
+	}
+
+	// Мы не допускаем одновременного наличия более 5 сессий.
+	if len(sess) > 5 {
+		// Сортируем сессии по дате убывания их создания.
+		sort.SliceStable(sess, func(i, j int) bool {
+			return sess[i].CreatedAt.After(sess[j].CreatedAt)
+		})
+
+		// Получаем список идентификаторов тех сессий, которые нужно
+		// инвалидировать.
+		dropSessIds := make([]models.RefreshSessionId, len(sess)-5)
+		for i, session := range sess[5:] {
+			dropSessIds[i] = session.Id
+		}
+
+		// TODO: Инвалидировать access token-ы в сессиях.
+		if _, err := s.refRep.DeleteByIds(ctx, dropSessIds); err != nil {
 			return nil, err
 		}
 	}
@@ -177,12 +199,27 @@ func (s *Service) RefreshSession(
 	// все сессии.
 	if sess.Fingerprint != fingerprint {
 		// TODO: Сбросить все сессии.
+
+		// Удаляем сессии из БД, чтобы ими невозможно было более воспользоваться.
+		_, err := s.refRep.DeleteByUserId(ctx, sess.UserId)
+		if err != nil {
+			return nil, err
+		}
+
 		return nil, errors.New("unauthorized access detected")
 	}
 
+	// Находим пользователя-владельца сессии.
+	u, err := s.uSrv.FindById(ctx, sess.UserId)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, errors.New("user not found")
+	}
+
 	// Создаем токены для пользователя.
-	// FIXME: Язык необходимо доставать из информации о пользователе.
-	ut, err := jwt.CreateUserToken(sess.UserId, language.Default)
+	ut, err := jwt.CreateUserToken(u.Id, u.Lang)
 	if err != nil {
 		return nil, err
 	}

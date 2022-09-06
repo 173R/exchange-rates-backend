@@ -1,7 +1,6 @@
 package context
 
 import (
-	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 )
 
@@ -9,16 +8,6 @@ type Gin struct {
 	Context
 	// Оригинальный контекст gin.
 	Gin *gin.Context
-}
-
-// CaptureError захватывает ошибку и отправляет её в Sentry.
-func (c *Gin) CaptureError(err error) {
-	// TODO: Установить IP клиента.
-	hub := sentrygin.GetHubFromContext(c.Gin)
-	if hub == nil {
-		return
-	}
-	hub.CaptureException(err)
 }
 
 // SendData успешно отправляет указанные данные по единому формату.

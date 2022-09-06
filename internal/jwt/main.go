@@ -36,13 +36,13 @@ func CreateUserToken(uid models.UserId, lang language.Lang) (*UserToken, error) 
 	accessToken, err := sign(&UserAccessToken{
 		Uid:      uid,
 		Language: lang,
-	}, 30*time.Minute)
+	}, 30*time.Minute, tokenTypeUserAccessToken)
 	if err != nil {
 		return nil, err
 	}
 
 	// Генерируем токен для обновления токена доступа.
-	refreshToken, err := sign(map[string]interface{}{}, 30*24*time.Hour)
+	refreshToken, err := sign(map[string]interface{}{}, 30*24*time.Hour, tokenTypeUserRefreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -52,17 +52,21 @@ func CreateUserToken(uid models.UserId, lang language.Lang) (*UserToken, error) 
 
 // DecodeUserAccessToken декодирует пользовательский токен доступа.
 func DecodeUserAccessToken(token string) (*UserAccessToken, error) {
-	return decode[UserAccessToken](token)
+	return decode[UserAccessToken](token, tokenTypeUserAccessToken)
 }
 
 // DecodeRefreshToken декодирует токен обновления.
 func DecodeRefreshToken(token string) error {
-	_, err := decode[interface{}](token)
+	_, err := decode[interface{}](token, tokenTypeUserRefreshToken)
 	return err
 }
 
 // Подписывает указанный payload.
-func sign(payload interface{}, expIn time.Duration) (*signResult, error) {
+func sign(
+	payload interface{},
+	expIn time.Duration,
+	tokenType tokenType,
+) (*signResult, error) {
 	// Сериализуем пэйлоад в массив байт.
 	bytes, err := json.Marshal(payload)
 	if err != nil {
@@ -81,6 +85,8 @@ func sign(payload interface{}, expIn time.Duration) (*signResult, error) {
 	pmap["iat"] = time.Now().Unix()
 	// Добавляем дату истечения срока годности токена.
 	pmap["exp"] = expAt.Unix()
+	// Добавляем тип токена.
+	pmap["type"] = tokenType
 
 	// Подписываем пэйлоад.
 	t, err := jwt.NewWithClaims(signMethod, jwt.MapClaims(pmap)).SignedString(configs.Jwt.Secret)
@@ -92,12 +98,11 @@ func sign(payload interface{}, expIn time.Duration) (*signResult, error) {
 }
 
 // Проверяет токен на валидность, а также извлекает из него контент.
-func decode[T interface{}](seq string) (*T, error) {
+func decode[T interface{}](seq string, tt tokenType) (*T, error) {
 	// Парсим токен.
 	token, err := jwt.Parse(seq, func(token *jwt.Token) (interface{}, error) {
 		// Проверяем алгоритм шифрования на соответствие нашему.
 		alg, ok := token.Method.(*jwt.SigningMethodHMAC)
-
 		if !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -119,6 +124,19 @@ func decode[T interface{}](seq string) (*T, error) {
 	payload, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return nil, errors.New("payload is invalid")
+	}
+
+	// Проверяем, что тип токена является корректным.
+	var payloadTt tokenType
+
+	if vInf, ok := payload["type"]; ok {
+		if v, ok := vInf.(string); ok {
+			payloadTt = tokenType(v)
+		}
+	}
+
+	if payloadTt != tt {
+		return nil, errors.New("incorrect token type")
 	}
 
 	// Приводим payload к ожидаемому типу.

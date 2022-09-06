@@ -61,3 +61,13 @@ func NewGraph(ctx context.Context) (*Graph, error) {
 
 	return &Graph{cache: cache, token: ut}, nil
 }
+
+// MustNewGraph является опасной функцией, которая выбросит панику в
+// случае, если при вызове NewGraph произошла ошибка.
+func MustNewGraph(ctx context.Context) *Graph {
+	w, err := NewGraph(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return w
+}

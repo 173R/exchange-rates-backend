@@ -52,6 +52,15 @@ func (r *Repository) DeleteByIds(ctx context.Context, ids []models.RefreshSessio
 	return res.RowsAffected, nil
 }
 
+// DeleteByUserId удаляет записи по идентификатору пользователя.
+func (r *Repository) DeleteByUserId(ctx context.Context, uid models.UserId) (int64, error) {
+	res := r.db.WithContext(ctx).Delete(models.RefreshSession{}, "user_id = ?", uid)
+	if res.Error != nil {
+		return 0, res.Error
+	}
+	return res.RowsAffected, nil
+}
+
 // FindByRefreshToken возвращает сессию по её токену обновления.
 func (r *Repository) FindByRefreshToken(ctx context.Context, token string) (*models.RefreshSession, error) {
 	var res []models.RefreshSession
