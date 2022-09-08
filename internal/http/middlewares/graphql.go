@@ -12,6 +12,8 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/customerrors"
 	"github.com/wolframdeus/exchange-rates-backend/internal/graph"
 	"github.com/wolframdeus/exchange-rates-backend/internal/graph/generated"
+	"github.com/wolframdeus/exchange-rates-backend/internal/jwt"
+	"github.com/wolframdeus/exchange-rates-backend/internal/redis"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/auth"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/currencies"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/exrates"
@@ -26,6 +28,7 @@ func NewGraphQLMiddleware(
 	uSrv *users.Service,
 	exRatesSrv *exrates.Service,
 	authSrv *auth.Service,
+	redisCl *redis.Client,
 ) gin.HandlerFunc {
 	h := handler.NewDefaultServer(
 		generated.NewExecutableSchema(generated.Config{
@@ -81,8 +84,17 @@ func NewGraphQLMiddleware(
 		// Помещаем в контекст кеш запроса.
 		ctx = ctxpkg.ContextWithCache(ctx, uSrv)
 
-		// Помещаем в контекст токен авторизации.
-		ctx = context.WithValue(ctx, ctxpkg.KeyAuthToken, deriveAuthToken(c))
+		// Далее производим работу, связанную с авторизацией. Для этого из
+		// соответствующего заголовка извлекаем токен и проверяем его на валидность
+		// с точки зрения JWT.
+		at := deriveAuthToken(c)
+		if ut, err := jwt.DecodeUserAccessToken(at); err == nil {
+			// Проверяем, не был ли он раннее инвалидирован.
+			valid, err := redisCl.IsUserAccessTokenValid(ctx, at)
+			if err == nil && valid {
+				ctx = context.WithValue(ctx, ctxpkg.KeyAuthToken, ut)
+			}
+		}
 
 		// Переопределяем контекст запроса.
 		c.Request = c.Request.WithContext(ctx)

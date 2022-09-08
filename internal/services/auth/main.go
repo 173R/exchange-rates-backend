@@ -6,6 +6,7 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/configs"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/jwt"
+	"github.com/wolframdeus/exchange-rates-backend/internal/redis"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/refsessions"
 	"github.com/wolframdeus/exchange-rates-backend/internal/services/users"
 	"github.com/wolframdeus/exchange-rates-backend/internal/tg"
@@ -30,9 +31,12 @@ type Service struct {
 	uSrv *users.Service
 	// Репозиторий для работы с сессиями.
 	refRep *refsessions.Repository
+	// Redis-клиент.
+	redisCl *redis.Client
 }
 
-// AuthenticateTg аутентифицирует пользователя по его параметрам запуска.
+// AuthenticateTg аутентифицирует пользователя по его параметрам
+// запуска Telegram.
 func (s *Service) AuthenticateTg(
 	ctx context.Context,
 	initData string,
@@ -119,7 +123,6 @@ func (s *Service) AuthenticateTg(
 
 	// Предыдущая сессия была найдена. Инвалидируем её.
 	if prevSession != nil {
-		// TODO: Инвалидировать access token, который был до этого в сессии.
 		// Обновляем информацию о сессии.
 		if err := s.refRep.RefreshById(
 			ctx,
@@ -129,6 +132,11 @@ func (s *Service) AuthenticateTg(
 			ut.AccessToken.Token,
 		); err != nil {
 			return nil, err
+		}
+
+		// Инвалидируем предыдущий токен.
+		if err := s.invalidateToken(ctx, prevSession.AccessToken); err != nil {
+			// TODO: Залогировать ошибку.
 		}
 
 		// Переназначаем дату создания предыдущей сессии для возможных
@@ -162,11 +170,18 @@ func (s *Service) AuthenticateTg(
 		// Получаем список идентификаторов тех сессий, которые нужно
 		// инвалидировать.
 		dropSessIds := make([]models.RefreshSessionId, len(sess)-5)
+		invalidTokens := make([]string, len(sess)-5)
 		for i, session := range sess[5:] {
 			dropSessIds[i] = session.Id
+			invalidTokens[i] = session.AccessToken
 		}
 
-		// TODO: Инвалидировать access token-ы в сессиях.
+		// Инвалидируем токены доступа.
+		if err := s.invalidateTokens(ctx, invalidTokens); err != nil {
+			// TODO: Залогировать ошибку.
+		}
+
+		// Удаляем сессии из БД.
 		if _, err := s.refRep.DeleteByIds(ctx, dropSessIds); err != nil {
 			return nil, err
 		}
@@ -198,11 +213,23 @@ func (s *Service) RefreshSession(
 	// В случае, если обновление вызывается иным клиентом, необходимо сбросить
 	// все сессии.
 	if sess.Fingerprint != fingerprint {
-		// TODO: Сбросить все сессии.
+		// Находим все сессии пользователя.
+		usess, err := s.refRep.FindByUserId(ctx, sess.UserId)
+		if err != nil {
+			return nil, err
+		}
+
+		// Инвалидируем все сесии.
+		accessTokens := make([]string, len(usess))
+		for i, us := range usess {
+			accessTokens[i] = us.AccessToken
+		}
+		if err := s.invalidateTokens(ctx, accessTokens); err != nil {
+			return nil, err
+		}
 
 		// Удаляем сессии из БД, чтобы ими невозможно было более воспользоваться.
-		_, err := s.refRep.DeleteByUserId(ctx, sess.UserId)
-		if err != nil {
+		if _, err := s.refRep.DeleteByUserId(ctx, sess.UserId); err != nil {
 			return nil, err
 		}
 
@@ -224,6 +251,11 @@ func (s *Service) RefreshSession(
 		return nil, err
 	}
 
+	// Инвалидируем предыдущий токен сессии.
+	if err := s.invalidateToken(ctx, sess.AccessToken); err != nil {
+		// TODO: Залогировать ошибку.
+	}
+
 	// Обновляем информацию о сессии.
 	if err := s.refRep.RefreshById(
 		ctx,
@@ -234,12 +266,44 @@ func (s *Service) RefreshSession(
 	); err != nil {
 		return nil, err
 	}
+
 	return resultFromUserToken(ut), nil
 }
 
+// Инвалидирует указанный access token.
+func (s *Service) invalidateToken(ctx context.Context, token string) error {
+	return s.invalidateTokens(ctx, []string{token})
+}
+
+// Инвалидирует указанный access token.
+func (s *Service) invalidateTokens(ctx context.Context, tokens []string) error {
+	filteredTokens := make(map[string]time.Duration, len(tokens))
+
+	// Оставляем только те токены, которые необходимо инвалидировать.
+	for _, token := range tokens {
+		// Декодируем токен доступа пользователя.
+		t, err := jwt.DecodeUserAccessToken(token)
+		if err != nil {
+			continue
+		}
+
+		// Вычисляем оставшийся срок жизни токена. Если токен ещё жив, его
+		// необходимо поместить в Redis.
+		expIn := t.ExpiresIn()
+		if expIn > 0 {
+			filteredTokens[token] = expIn
+		}
+	}
+	return s.redisCl.InvalidateUserAccessTokens(ctx, filteredTokens)
+}
+
 // NewService создает указатель на новый экземпляр Service.
-func NewService(uSrv *users.Service, refRep *refsessions.Repository) *Service {
-	return &Service{uSrv: uSrv, refRep: refRep}
+func NewService(
+	uSrv *users.Service,
+	refRep *refsessions.Repository,
+	redisCl *redis.Client,
+) *Service {
+	return &Service{uSrv: uSrv, refRep: refRep, redisCl: redisCl}
 }
 
 // Создает указатель на Result из результата авторизации пользователя.

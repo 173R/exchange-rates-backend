@@ -3,6 +3,7 @@ package jwt
 import (
 	"github.com/wolframdeus/exchange-rates-backend/internal/db/models"
 	"github.com/wolframdeus/exchange-rates-backend/internal/language"
+	"time"
 )
 
 const (
@@ -20,4 +21,27 @@ type UserAccessToken struct {
 	Uid models.UserId `mapstructure:"uid" json:"uid"`
 	// Язык, используемый пользователем.
 	Language language.Lang `mapstructure:"lng" json:"lng"`
+	// Unix-время выдачи токена.
+	IssuedAtRaw int64 `mapstructure:"iat" json:"iat"`
+	// Unix-время истечения токена.
+	ExpiresAtRaw int64 `mapstructure:"exp" json:"exp"`
+}
+
+// IssuedAt возвращает дату выдачи токена.
+func (t *UserAccessToken) IssuedAt() time.Time {
+	return time.Unix(t.IssuedAtRaw, 0)
+}
+
+// ExpiresAt возвращает дату окончания действия токена.
+func (t *UserAccessToken) ExpiresAt() time.Time {
+	return time.Unix(t.ExpiresAtRaw, 0)
+}
+
+// ExpiresIn возвращает оставшуюся длительность действия токена.
+func (t *UserAccessToken) ExpiresIn() time.Duration {
+	diff := t.ExpiresAt().Sub(time.Now())
+	if diff < 0 {
+		return 0
+	}
+	return diff
 }

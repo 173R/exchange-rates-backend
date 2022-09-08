@@ -8,6 +8,7 @@ import (
 	"github.com/wolframdeus/exchange-rates-backend/configs"
 	"github.com/wolframdeus/exchange-rates-backend/internal/db"
 	http "github.com/wolframdeus/exchange-rates-backend/internal/http/middlewares"
+	"github.com/wolframdeus/exchange-rates-backend/internal/redis"
 	curreppkg "github.com/wolframdeus/exchange-rates-backend/internal/repositories/currencies"
 	exratesreppkg "github.com/wolframdeus/exchange-rates-backend/internal/repositories/exrates"
 	"github.com/wolframdeus/exchange-rates-backend/internal/repositories/refsessions"
@@ -26,11 +27,14 @@ func Run() error {
 		return err
 	}
 
+	// Создаем Redis клиент.
+	rc := redis.NewWithConfig()
+
 	// Создаем все необходимые сервисы.
 	uSrv := users.NewService(ureppkg.NewRepository(gormDb))
 	exratesSrv := exrates.NewService(exratesreppkg.NewRepository(gormDb))
 	curSrv := currencies.NewService(curreppkg.NewRepository(gormDb))
-	authSrv := auth.NewService(uSrv, refsessions.NewRepository(gormDb))
+	authSrv := auth.NewService(uSrv, refsessions.NewRepository(gormDb), rc)
 
 	// Создаем корневой обработчик Gin.
 	app := gin.New()
@@ -49,7 +53,7 @@ func Run() error {
 	}))
 
 	// Добавляем обработчик GraphQL запросов.
-	app.POST("/gql", http.NewGraphQLMiddleware(curSrv, uSrv, exratesSrv, authSrv))
+	app.POST("/gql", http.NewGraphQLMiddleware(curSrv, uSrv, exratesSrv, authSrv, rc))
 
 	if err := app.Run(fmt.Sprintf("0.0.0.0:%d", configs.App.Port)); err != nil {
 		return err

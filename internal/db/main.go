@@ -26,7 +26,7 @@ func New(host string, port uint, user, pass, name string) (*gorm.DB, error) {
 	return gorm.Open(gormpg.Open(connStr), nil)
 }
 
-// NewByConfig работает аналогично NewClient, но использует данные из
+// NewByConfig работает аналогично New, но использует данные из
 // конфига проекта.
 func NewByConfig() (*gorm.DB, error) {
 	c := configs.Db

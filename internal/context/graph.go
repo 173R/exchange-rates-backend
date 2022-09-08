@@ -51,12 +51,9 @@ func NewGraph(ctx context.Context) (*Graph, error) {
 
 	// Парсим токен доступа пользователя.
 	var ut *jwt.UserAccessToken
-	token, ok := ctx.Value(KeyAuthToken).(string)
 
-	if ok && len(token) > 0 {
-		if utoken, err := jwt.DecodeUserAccessToken(token); err == nil {
-			ut = utoken
-		}
+	if t, ok := ctx.Value(KeyAuthToken).(*jwt.UserAccessToken); ok {
+		ut = t
 	}
 
 	return &Graph{cache: cache, token: ut}, nil

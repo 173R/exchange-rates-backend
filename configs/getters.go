@@ -23,15 +23,23 @@ func getAppEnv(key string) AppEnv {
 	}
 }
 
+// Возвращает uint на основе переданного ключа.
+func getUint(key string) uint {
+	str := viper.GetString(key)
+
+	if intVal, err := strconv.Atoi(str); err == nil && intVal >= 0 {
+		return uint(intVal)
+	}
+	return 0
+}
+
 // Возвращает uint на основе переданного ключа. В случае, если значение
 // некорректно, будет выброшена ошибка.
 func getRequiredUint(key string) uint {
 	str := viper.GetString(key)
 
-	if intVal, err := strconv.Atoi(str); err == nil {
-		if intVal >= 0 {
-			return uint(intVal)
-		}
+	if intVal, err := strconv.Atoi(str); err == nil && intVal >= 0 {
+		return uint(intVal)
 	}
 	panic(createError(key, "uint"))
 }

@@ -42,6 +42,9 @@ type User struct {
 	PhotoUrl     string        `mapstructure:"photo_url"`
 }
 
+// Срок действия параметров запуска.
+const paramsExpireIn = 10 * 24 * time.Hour
+
 // ValidateInitData валидирует параметры запуска, которые были переданы из
 // клиентского приложения. Ожидается, что initData будет равен значению
 // window.Telegram.WebApp.initData
@@ -84,8 +87,8 @@ func ValidateInitData(initData, token string) (bool, error) {
 		return false, errors.New("auth_date is empty")
 	}
 
-	// Параметры запуска валидны лишь в течение 24 часов.
-	if authDate.Add(24 * time.Hour).Before(time.Now()) {
+	// Параметры запуска валидны лишь в течение определенного времени.
+	if authDate.Add(paramsExpireIn).Before(time.Now()) {
 		return false, errors.New("init data is expired")
 	}
 
